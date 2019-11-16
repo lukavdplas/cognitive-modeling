@@ -1,0 +1,70 @@
+---
+title: 'Lab assignment 1: Processing models'
+author: "Luka van der Plas (4119142) & Rianne Lam (6888216)"
+date: "15 november 2019"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Question 1A
+
+```{r q1A, echo=FALSE}
+load("keyPressDataWithLaneDeviation.Rdata")
+
+no_errors <- subset(keyPressDataWithLaneDeviation, typingErrorMadeOnTrial == 0)
+finished_dialling <- subset(no_errors, phoneNrLengthAfterKeyPress == 11)
+
+mean_sd_se <- function(data){
+  #summarise data into mean, SD and SE
+ mean_value <- mean(data)
+ sd <- sd(data)
+ se <- sd / sqrt(length(data))
+ 
+ c(mean_value, sd, se)
+}
+
+summarise <- function(dialling_data) {
+  #calculate mean per participant
+  mean_dialling_times <- aggregate(dialling_data[, c('pp', 'timeRelativeToTrialStart')], by = list(dialling_data$pp), FUN = mean)$timeRelativeToTrialStart
+  
+  #get summary over all participants
+  summary <- mean_sd_se(mean_dialling_times)
+  summary
+}
+
+#data per condition
+steer_focus <-  summarise(subset(finished_dialling, partOfExperiment == 'dualSteerFocus'))
+dial_focus <- summarise(subset(finished_dialling, partOfExperiment == 'dualDialFocus'))
+    
+```
+
+Table:
+
+```{r table_q1a}
+
+
+
+```
+
+
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
