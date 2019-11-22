@@ -2,29 +2,127 @@
 title: 'Lab assignment 1: Processing models'
 author: "Luka van der Plas (4119142) & Rianne Lam (6888216)"
 date: "15 november 2019"
-output: pdf_document
+output:
+  html_document:
+    df_print: paged
+  word_document: default
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## R Markdown
+## Section I: Human data
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+### Question 1:
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+A.
 
-```{r cars}
-summary(cars)
+```{r, echo = FALSE}
+load("keyPressDataWithLaneDeviation.Rdata")
+  
+NoErr <- subset(keyPressDataWithLaneDeviation, typingErrorMadeOnTrial == 0)
+totalDialingTime <- subset(NoErr, phoneNrLengthAfterKeyPress == 11)
+
+summaryStatistics <- function(data) {
+  meanCond <- mean(data)
+  sdCond <- sd(data)
+  seCond <- sdCond / sqrt(12)
+  return(c(meanCond, sdCond, seCond))
+}
+
+summarizeData <- function(dataToSummarize) {
+
+totalDialingTimePP <- aggregate(dataToSummarize[ , c("pp", "timeRelativeToTrialStart")], by = list(dataToSummarize$pp), FUN = mean)$timeRelativeToTrialStart
+
+summary <- summaryStatistics(totalDialingTimePP)
+
+return(summary)
+} 
+  
+summaryDataCond1 <- summarizeData(subset(totalDialingTime, partOfExperiment == "dualSteerFocus"))
+summaryDataCond2 <- summarizeData(subset(totalDialingTime, partOfExperiment == "dualDialFocus"))
+
+results <- data.frame("M" = paste(round(c(summaryDataCond1[1], summaryDataCond2[1]), 3),  " ms"),
+                   "SD" = paste(round(c(summaryDataCond1[2], summaryDataCond2[2]), 3),  " ms"),
+                   "SE" = paste(round(c(summaryDataCond1[3], summaryDataCond2[3]), 3),  " ms"))
+rownames(results) <- c("Steering focus", "Dialing focus")
+
+results
+
 ```
 
-## Including Plots
+B.
 
-You can also embed plots, for example:
+```{r, echo = FALSE}
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+avg_dev_trial <- function(data, trialN) {
+  dataTrial <- subset(data, data$trial == trialN)
+  abs_lane_pos <- mean(abs(dataTrial$lanePosition), na.rm = TRUE)
+  return(abs_lane_pos)
+}
+
+avg_dev_cond <- function(condition) {
+  dataCond <- subset(keyPressDataWithLaneDeviation, keyPressDataWithLaneDeviation$partOfExperiment == condition) 
+  ppCount <- max(dataCond$pp)
+  abs_lane_pos <- vector()
+  for (i in 1:ppCount) {
+      dataCondpp <- subset(dataCond, dataCond$pp == i)
+      trials <- unique(dataCondpp$trial)
+    for (j in trials) {
+      mean_abs_lane_pos <- avg_dev_trial(dataCondpp, j)
+      abs_lane_pos <- append(abs_lane_pos, mean_abs_lane_pos)
+    }
+  }
+  
+  return(summaryStatistics(abs_lane_pos))
+} 
+
+steerFocus <- avg_dev_cond("dualSteerFocus")
+dialFocus <- avg_dev_cond("dualDialFocus")
+
+results <- data.frame("M" = paste(round(c(steerFocus[1], dialFocus[1]), 3),  " m"),
+                   "SD" = paste(round(c(steerFocus[2], dialFocus[2]), 3),  " m"),
+                   "SE" = paste(round(c(steerFocus[3], dialFocus[3]), 3),  " m"))
+rownames(results) <- c("Steering focus", "Dialing focus")
+
+results
+
+
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+C.
+
+```{r, echo = FALSE}
+
+library(ggplot2)
+
+keyPresses <- unique(keyPressDataWithLaneDeviation$phoneNrLengthAfterKeyPress)
+
+avg_dev_digit <- function(data) {
+  results <- zeros(length(keyPresses)) 
+  for (i in keyPresses) {
+    key_data <- subset(data, data$phoneNrLengthAfterKeyPress == i)
+    results[i] <- mean(abs(key_data$lanePosition))
+  }
+}
+
+ggplot(deviationPerCondition, aes(x = KeyPresses, y = deviation, group = condition)) +
+  geom_line(aes(color = "black", shape = condition)) +
+  geom_point(aes(color= "black", shape = condition)) +
+  theme_classic() +
+  theme(legend.position = c(0.8, 0.2)) + 
+  ylab("Lateral Deviation (m)") + 
+  xlab("Number of key pressess") + 
+  geom_errorbar(aes(ymin = deviation - sd(deviation), ymax = deviation + sd(deviation)), width = 0.2, position = position_dodge(0.05)) #+
+  # scale_x_continuous(limits=c(0, 30)) +
+  # scale_y_continuous(limits=c(0, 150))
+
+
+
+
+```
+
+
+
+
