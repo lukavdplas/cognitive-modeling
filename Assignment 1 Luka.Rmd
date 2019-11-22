@@ -46,17 +46,113 @@ Table:
 ```{r table_q1a}
 
 
+```
+
+### Question 1B
+
+```{r q1b, echo=FALSE}
+
+
+avg_deviation_per_trial <- function(n, data) {
+  trial_data = subset(data, trial == n)
+  mean_absolute_deviation <- mean(abs(trial_data$lanePosition))
+  
+  mean_absolute_deviation
+}
+
+avg_deviation_over_condition <- function(condition) {
+  data <- subset(keyPressDataWithLaneDeviation,  partOfExperiment == condition)
+  deviations <- c()
+  p_count <- max(data$pp)
+  for (p in 1:p_count) {
+    p_data <- subset(data, pp == p)
+    trials <- unique(p_data$trial)
+    for (t in trials) {
+      mean_deviation <- avg_deviation_per_trial(t, p_data)
+      deviations <- append(deviations, mean_deviation)
+    }
+  }
+  mean_sd_se(deviations)
+}
+
+dual_steer_data <- avg_deviation_over_condition('dualSteerFocus')
+dual_dial_data <- avg_deviation_over_condition('dualDialFocus')
 
 ```
 
 
+###Question 1C
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+```{r q1c, echo=FALSE}
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
 
-```{r cars}
-summary(cars)
+keypresses = unique(keyPressDataWithLaneDeviation$phoneNrLengthAfterKeyPress)
+
+avg_deviation_per_digit <- function(data) {
+  results <- numeric(length(keypresses))
+  for(i in keypresses){
+    key_data <- subset(data, phoneNrLengthAfterKeyPress == i)
+    deviation <- mean(abs(key_data$lanePosition))
+    results[i] <- deviation
+  }
+  results
+}
+
+total_digits <- length(keypresses)
+
+digit_deviations_per_condition <- function(condition) {
+  data <- subset(keyPressDataWithLaneDeviation, partOfExperiment == condition)
+  
+  #framework for deviations: a list with the data for each digit
+  deviations <- list()
+  for (i in keypresses){
+    deviations <- append(deviations, list(c()))
+  }
+  
+  #calculate deviation data per participant ...
+  p_count <- max(data$pp)
+  for (p in 1:p_count) {
+    p_data <- subset(data, pp == p)
+    
+    #... and per trial
+    trials <- unique(p_data$trial)
+    for (t in trials) {
+      #get deviation data per digit
+      t_data <- subset(p_data, trial == t)
+      trial_deviations <- avg_deviation_per_digit(t_data)
+      
+      #store in deviations list
+      for (i in 1:total_digits){
+        deviations[[i]] <- append(deviations[[i]], trial_deviations[i])
+      }
+    }
+  }
+  
+  #compute mean and SD per digit
+  means <- numeric(length=length(keypresses))
+  sds <- numeric(length=length(keypresses))
+  
+  
+  
+  for (i in 1:length(keypresses)) {
+    #print(deviations[[i]])
+    means[i] <- mean(deviations[[i]], na.rm=TRUE)
+    sds[i] <- sd(deviations[[i]], na.rm=TRUE)
+  }
+  
+  #put everything in a dataframe
+  condition_col <- rep(condition, length(keypresses))
+  df <- data.frame(keypresses, means, sds, condition_col)
+  
+  return(df)
+  
+}
+
+dual_steer_data_per_digit <- digit_deviations_per_condition('dualSteerFocus')
+dual_dial_data_per_digit <- digit_deviations_per_condition('dualDialFocus')
+
+plot_data <- rbind(dual_dial_data_per_digit, dual_steer_data_per_digit)
+
 ```
 
 ## Including Plots
