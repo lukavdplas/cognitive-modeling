@@ -63,7 +63,7 @@ avg_dev_trial <- function(data, trialN) {
 }
 
 avg_dev_cond <- function(condition) {
-  dataCond <- subset(keyPressDataWithLaneDeviation, keyPressDataWithLaneDeviation$partOfExperiment == condition) 
+  dataCond <- subset(NoErr, NoErr$partOfExperiment == condition) 
   ppCount <- max(dataCond$pp)
   abs_lane_pos <- vector()
   for (i in 1:ppCount) {
@@ -96,32 +96,48 @@ C.
 ```{r, echo = FALSE}
 
 library(ggplot2)
+library(dplyr)
 
-keyPresses <- unique(keyPressDataWithLaneDeviation$phoneNrLengthAfterKeyPress)
+mean_dev_pp_df <- NoErr %>%
+  # Group by participant, keypress, condition
+  group_by(pp, phoneNrLengthAfterKeyPress, partOfExperiment) %>%  
+  # Take the mean of absolute lane position for these groups
+  summarise(mean_dev_pp = mean(abs(lanePosition)))
 
-avg_dev_digit <- function(data) {
-  results <- zeros(length(keyPresses)) 
-  for (i in keyPresses) {
-    key_data <- subset(data, data$phoneNrLengthAfterKeyPress == i)
-    results[i] <- mean(abs(key_data$lanePosition))
-  }
-}
+mean_dev_all <- mean_dev_pp_df %>%
+  # Group by keypress, condition
+  group_by(phoneNrLengthAfterKeyPress, partOfExperiment) %>%
+  # Take the mean of the mean for these groups per participant (mean across participants)
+  summarise(mean_dev = mean(mean_dev_pp)) %>%
+  # Only look at the two relevant conditions
+  filter(partOfExperiment %in% c("dualDialFocus", "dualSteerFocus")) 
 
-ggplot(deviationPerCondition, aes(x = KeyPresses, y = deviation, group = condition)) +
-  geom_line(aes(color = "black", shape = condition)) +
-  geom_point(aes(color= "black", shape = condition)) +
+# Replace condition names for plot
+mean_dev_all$partOfExperiment <- recode(mean_dev_all$partOfExperiment, "dualDialFocus" = "Dialing-focus", "dualSteerFocus" = "Steering-focus")
+
+mean_dev_all
+
+n <- max(unique(keyPressDataWithLaneDeviation$pp))
+
+ggplot(mean_dev_all, aes(x = phoneNrLengthAfterKeyPress, y = mean_dev, group = partOfExperiment)) +
+  geom_line(size = 1) +
+  geom_point(aes(shape = factor(partOfExperiment)), size = 3.5) +
   theme_classic() +
-  theme(legend.position = c(0.8, 0.2)) + 
+  theme(legend.position = c(0.9, 0.1), legend.title = element_blank()) + 
   ylab("Lateral Deviation (m)") + 
-  xlab("Number of key pressess") + 
-  geom_errorbar(aes(ymin = deviation - sd(deviation), ymax = deviation + sd(deviation)), width = 0.2, position = position_dodge(0.05)) #+
-  # scale_x_continuous(limits=c(0, 30)) +
-  # scale_y_continuous(limits=c(0, 150))
+  xlab("Number of key presses") + 
+  geom_errorbar(aes(ymin = mean_dev - (sd(mean_dev) / sqrt(n)), ymax = mean_dev + (sd(mean_dev) / sqrt(n))), size = 1, width = 0.2, position = position_dodge(0.05)) 
+  # scale_x_continuous(breaks = seq(0, 12, 2)) +
+  # scale_y_continuous(breaks = seq(0, 0.8, 0.2))
+
+```
 
 
 
 
 ```
+
+D. 
 
 
 
