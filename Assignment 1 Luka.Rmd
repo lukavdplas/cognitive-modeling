@@ -89,6 +89,7 @@ dual_dial_data <- avg_deviation_over_condition('dualDialFocus')
 keypresses = unique(keyPressDataWithLaneDeviation$phoneNrLengthAfterKeyPress)
 
 avg_deviation_per_digit <- function(data) {
+  #calculate average of deviation for each digit
   results <- numeric(length(keypresses))
   for(i in keypresses){
     key_data <- subset(data, phoneNrLengthAfterKeyPress == i)
@@ -132,10 +133,7 @@ digit_deviations_per_condition <- function(condition) {
   means <- numeric(length=length(keypresses))
   sds <- numeric(length=length(keypresses))
   
-  
-  
   for (i in 1:length(keypresses)) {
-    #print(deviations[[i]])
     means[i] <- mean(deviations[[i]], na.rm=TRUE)
     sds[i] <- sd(deviations[[i]], na.rm=TRUE)
   }
@@ -155,12 +153,126 @@ plot_data <- rbind(dual_dial_data_per_digit, dual_steer_data_per_digit)
 
 ```
 
-## Including Plots
+### Question 1D
 
-You can also embed plots, for example:
+### Question 2A
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+```{r q2a, echo=FALSE}
+
+library(ggplot2)
+load("tableOfDriftValuesCalibration.Rdata")
+
+
+driftdata <- subset(tableOfDriftValuesCalibration, trialTime >= 15000 & trialTime <= 18000)
+driftdata$trial <- as.factor(driftdata$trial)
+
+ggplot(driftdata, aes(trialTime, posX)) +
+  geom_line(aes(group = trial, color = trial)) +
+  theme(legend.position = "none")
+
+
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+### Question 2B
+
+```{r q2b, echo=FALSE}
+
+#get trials and timesteps
+trials <- unique(tableOfDriftValuesCalibration$trial)
+timesteps <- 3000 / 50
+timerange <- seq(0, 3000, 50)
+
+#empty df
+trial_data <- data.frame()
+
+#add data for trials
+for (t in trials) {
+  deviations <- rnorm(timesteps, mean = 0, sd = 0.13)
+  deviations <- cumsum(deviations)
+  
+  for (i in 1:length(deviations)) {
+    trial_data <- rbind(trial_data, c(t, timerange[i], deviations[i]))
+  }
+}
+
+#set column names
+colnames(trial_data) <- c("trial", "time", "deviation")
+trial_data$trial <- as.factor(trial_data$trial)
+
+ggplot(trial_data, aes(time, deviation)) +
+  geom_line(aes(group = trial, color = trial)) +
+  theme(legend.position = "none")
+
+```
+
+
+### Question 2C
+
+```{r q2c, echo=FALSE}
+
+min_pos <- min(min(driftdata$posX), min(trial_data$deviation))
+min_pos <- floor(min_pos * 10) / 10
+max_pos <- max(max(driftdata$posX), max(trial_data$deviation))
+max_pos <- ceiling(max_pos * 10) / 10
+
+ggplot(driftdata, aes(posX)) +
+  geom_histogram(binwidth = 0.2) +
+  scale_x_continuous(breaks = seq(min_pos, max_pos, 0.2)) +
+  coord_cartesian(xlim=  c(min_pos, max_pos), ylim=c(0, 350)) +
+  xlab("lateral position") +
+  ylab("frequency")
+
+ggplot(trial_data, aes(deviation)) +
+  geom_histogram(binwidth = 0.2) +
+  scale_x_continuous(breaks = (breaks = seq(min_pos, max_pos, 0.2))) +
+  coord_cartesian(xlim=  c(min_pos, max_pos), ylim=c(0, 350)) +
+  xlab("lateral position") +
+  ylab("frequency")
+
+
+```
+
+
+### Question 2D
+
+```{r q2d, echo=FALSE}
+
+measured_sd <- sd(driftdata$posX)
+simulated_sd <- sd(trial_data$deviation)
+
+table <- data.frame("Source" = c("Measured", "Simulated"), "SD" = c(measured_sd, simulated_sd))
+
+print(table)
+
+```
+
+### Question 2E
+
+```{r q2e}
+
+
+simulate_data_with_sd <- function(sd_value) {
+  #empty df for new simulatin
+  new_sim <- data.frame()
+  
+  trials <- seq(50)
+  #add data for trials
+  for (t in trials) {
+    deviations <- rnorm(timesteps, mean = 0, sd = sd_value)
+    deviations <- cumsum(deviations)
+    
+    for (i in 1:length(deviations)) {
+      trial_data <- rbind(new_sim, c(t, timerange[i], deviations[i]))
+    }
+  }
+  
+  colnames(trial_data) <- c("trial", "time", "deviation")
+  trial_data$trial <- as.factor(trial_data$trial)
+  
+  sd(new_sim$deviation)
+  
+}
+
+
+
+```
