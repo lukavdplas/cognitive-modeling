@@ -248,31 +248,79 @@ print(table)
 
 ### Question 2E
 
+To find the optimal SD value, we searched through SD values from 0.01 to 0.13, with a step of 0.01. For each SD value, we calculated the standard deviation of the lateral position over 50 trials, and then calculated the absolute difference with the target SD, i.e. the one measured on the human trials. Below is a plot with these results.
+
 ```{r q2e}
 
 
-simulate_data_with_sd <- function(sd_value) {
+sim_data_with_sd <- function(sd_value, trialN = 50) {
   #empty df for new simulatin
   new_sim <- data.frame()
   
-  trials <- seq(50)
+  trials <- seq(trialN)
   #add data for trials
   for (t in trials) {
     deviations <- rnorm(timesteps, mean = 0, sd = sd_value)
     deviations <- cumsum(deviations)
     
     for (i in 1:length(deviations)) {
-      trial_data <- rbind(new_sim, c(t, timerange[i], deviations[i]))
+      new_sim <- rbind(new_sim, c(t, timerange[i], deviations[i]))
     }
   }
   
-  colnames(trial_data) <- c("trial", "time", "deviation")
-  trial_data$trial <- as.factor(trial_data$trial)
+  colnames(new_sim) <- c("trial", "time", "deviation")
+  new_sim$trial <- as.factor(new_sim$trial)
   
-  sd(new_sim$deviation)
-  
+  new_sim
+}
+
+get_sd_result <- function(sd_value) {
+  sim <- sim_data_with_sd(sd_value)
+  sd_result <- sd(sim$deviation)
+  sd_result
+}
+
+get_differences <- function(sd_value) {
+  diff <- abs(sd_value - measured_sd)
+  diff
 }
 
 
+sds <- seq(from  = 0.01, to = 0.13, by = 0.01)
+sd_results <- sapply(sds, FUN = get_sd_result)
+sd_differences <- sapply(sd_results, FUN = get_difference)
+
+sds_df <- data.frame("SD" = sds, "Difference" <- differences)
+
+ggplot(sds_df, aes(SD, Difference)) + 
+  geom_line() + 
+  scale_x_continuous(breaks = sds)
 
 ```
+
+Based on these results, we chose to use an SD for the gaussian distribution of 0.07. This gives an SD of lateral position of 0.344.
+
+```{r q2e_2, echo=FALSE}
+
+opt_sd = 0.07
+
+#20 trials
+sim_data <- sim_data_with_sd(opt_sd, trialN = 20)
+
+#plot deviation
+ggplot(sim_data, aes(time, deviation)) +
+  geom_line(aes(group = trial, color = trial)) +
+  theme(legend.position = "none")
+```
+
+```{r q2e_3, echo=FALSE}
+
+ggplot(sim_data, aes(deviation)) +
+  geom_histogram(binwidth = 0.2) +
+  scale_x_continuous(breaks = (breaks = seq(min_pos, max_pos, 0.2))) +
+  coord_cartesian(xlim=  c(min_pos, max_pos), ylim=c(0, 350)) +
+  xlab("lateral position") +
+  ylab("frequency")
+
+```
+
