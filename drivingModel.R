@@ -24,11 +24,11 @@ startingPositionInLane <- 0.27 			#assume that car starts already away from lane
 
 #parameters for deviations in car drift due the simulator environment: See Janssen & Brumby (2010) page 1555
 gaussDeviateMean <- 0
-gaussDeviateSD <- 0.13
+gaussDeviateSD <- 0.07 #old value: 0.13
 
 #When the car is actively contorlled, we calculate a value using equation (1) in Janssen & Brumby (2010). However, some noise is added on top of this equation to account for variation in human behavior. See Janssen & Brumby (2010) page 1555. Also see function "updateSteering" on how this function is used
 gaussDriveNoiseMean <- 0
-gaussDriveNoiseSD <- 0.1	#in meter/sec
+gaussDriveNoiseSD <- 0.07 * 0.1 / 0.13	#in meter/sec old value: 0.1
 
 timeStepPerDriftUpdate <- 50 ### msec: what is the time interval between two updates of lateral position?
 
@@ -42,9 +42,9 @@ startvelocity <- 0 	#a global parameter used to store the lateral velocity of th
 ### all times in milliseconds
 
 ## times for dialing
-singleTaskKeyPressTimes <- c(400,400,400,400,400,400,400,400,400,400,400)   #digit times needed per keypress at that specific position (note: normalized for chunk retrieval time at digits 1 and 6 --- a retrieval cost would come on top of this)
-
-
+#singleTaskKeyPressTimes <- c(400,400,400,400,400,400,400,400,400,400,400)   #digit times needed per keypress at that specific position (note: normalized for chunk retrieval time at digits 1 and 6 --- a retrieval cost would come on top of this)
+singleTaskKeyPressTimes <-rep(275, 11)
+  
 digitTypeUK <- c("chunk","oth","oth","oth","oth","chunk","oth","oth","oth","oth","oth")  ### is each digit either the start of a chunk or some other digit?
 
 
@@ -272,9 +272,13 @@ runAllSimpleStrategies <- function(nrSimulations,phoneNumber)
 	#### make a plot that visualizes all the strategies: note that trial time is divided by 1000 to get the time in seconds
 	with(agrResultsMeanDrift,plot(TrialTime/1000,abs(dev),pch=21,bg="dark grey",col="dark grey",log="x",xlab="Dial time (s)",ylab="Average Lateral Deviation (m)"))
 	
+	#calculate correlation
+	corr <- cor(agrResultsMeanDrift$TrialTime, agrResultsMeanDrift$dev)
+	
 	
 	### give a summary of the data	
-	summary(agrResultsMeanDrift$TrialTime)
+	corr
+	#summary(agrResultsMeanDrift$TrialTime)
 
 }
 
