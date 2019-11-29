@@ -43,6 +43,8 @@ return(summary)
 summaryDataCond1 <- summarizeData(subset(totalDialingTime, partOfExperiment == "dualSteerFocus"))
 summaryDataCond2 <- summarizeData(subset(totalDialingTime, partOfExperiment == "dualDialFocus"))
 
+dialingTime <- c(summaryDataCond1, summaryDataCond2)
+
 results <- data.frame("M" = paste(round(c(summaryDataCond1[1], summaryDataCond2[1]), 3),  " ms"),
                    "SD" = paste(round(c(summaryDataCond1[2], summaryDataCond2[2]), 3),  " ms"),
                    "SE" = paste(round(c(summaryDataCond1[3], summaryDataCond2[3]), 3),  " ms"))
@@ -80,6 +82,8 @@ avg_dev_cond <- function(condition) {
 
 steerFocus <- avg_dev_cond("dualSteerFocus")
 dialFocus <- avg_dev_cond("dualDialFocus")
+
+laneDev <- c(steerFocus, dialFocus)
 
 results <- data.frame("M" = paste(round(c(steerFocus[1], dialFocus[1]), 3),  " m"),
                    "SD" = paste(round(c(steerFocus[2], dialFocus[2]), 3),  " m"),
@@ -360,9 +364,47 @@ However, the computing time increases quite a bit as we reach 100-200 simulation
 
 ```{r, echo = FALSE, warning = FALSE, message = FALSE}
 
-runAllComplexStrategies <- function(nrSimulations) {
+generate_strategies <- function(n) {
+  #give all strategies of length n
   
-  	normalPhoneStructure <- c(1,6)  ### indicate at what digit positions a chunk needs to be retrieved (1st and 6th digit)
+  #base case
+  if (n ==1) {
+    return (matrix(c(FALSE, TRUE)))
+  }
+    
+  #recursive definition
+  tail <- generate_strategies(n - 1)
+  count <- dim(tail)[1]
+  
+  start_0 <- cbind(matrix(rep(FALSE, count)), tail)
+  start_1 <- cbind(matrix(rep(TRUE, count)), tail)
+  
+  return(rbind(start_0, start_1))
+}
+
+all_strategies <- generate_strategies(10)
+
+give_breakpoints <- function(strat) {
+  breakpoints <- c()
+  
+  for (i in 1:length(strat)) {
+    if (strat[i]) {
+      breakpoints <- c(breakpoints, c(i))
+    }
+  }
+  breakpoints
+}
+
+steeringTimeOptions <- c(2,4,6,8,10,12)
+
+```
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE}
+
+runAllComplexStrategies <- function(nrSimulations,phoneNumber) {
+	
+	
+	normalPhoneStructure <- c(1,6)  ### indicate at what digit positions a chunk needs to be retrieved (1st and 6th digit)
 	phoneStringLength <- 11   ### how many digits does the number have?
 	
 
@@ -375,24 +417,12 @@ runAllComplexStrategies <- function(nrSimulations) {
 
 	### iterate through all strategies
 	## in this simple model we assume that a participant uses a consistent strategy throughout the trial. That is, they only type each time 1 digit, or type 2 digits at a time, or type 3 digits at a time (i.e., all possible ways of 1:phoneStringLength: 1, 2,3,4, ...11)
-	for (nrDigitsPerTime in 1: phoneStringLength)
+	
+	for (i in 1:10)  #nrow(all_strategies))
 	{
 		## quick way of calculating positions to interleave: repeat strategy & multiply with position in vector (e.g., 333*123 = 369 this means: you interleave BEFORE every 3rd digit (333), and there are 3 positions to interleave (1st, 2nd, 3rd, or 123). Therefore you interleave BEFORE digits 3 (3*1), 6 (3*2), and 9 (3*3))
-		
-		if (nrDigitsPerTime != 11)
-		{
-			strategy <- rep(nrDigitsPerTime ,floor(phoneStringLength/nrDigitsPerTime))  ### stores at which positions the number is interleaved
-			positions <- 1:length(strategy)
-			strategy <- strategy * positions
-		
-			### remove last digit, as driver does not interleave after typing the last digit (they are done with the trial :-)  )
-			strategy <- strategy[strategy != phoneStringLength]
-		}
-		else
-		{
-			strategy <- c()	
-			
-		}
+	  
+	  strategy <- give_breakpoints(all_strategies[i,])
 		
 
 		locSteerTimeOptions <- steeringTimeOptions
@@ -406,7 +436,7 @@ runAllComplexStrategies <- function(nrSimulations) {
 		### now run a trial (runOneTrial) for all combinations of how frequently you update the steering when you are steering (locSteerTimeOptions) and for the nuber of simulations that you want to run for each strategy (nrSimulations)
 		for (steerTimes in locSteerTimeOptions)
 		{
-			for (i in 1:nrSimulations)
+			for (j in 1:nrSimulations)
 			{
 
 				### run the simulation and store the output in a table
@@ -419,7 +449,7 @@ runAllComplexStrategies <- function(nrSimulations) {
 				keypresses <- c(keypresses,1:nrow(locTab))
 				times <- c(times,locTab$times)
 				deviations <- c(deviations,locTab$drifts)
-				strats <- c(strats,rep(nrDigitsPerTime,nrow(locTab)))
+				strats <- c(strats,rep(i,nrow(locTab)))
 				steers <- c(steers,rep(steerTimes,nrow(locTab)))
 		
 			}
@@ -430,7 +460,6 @@ runAllComplexStrategies <- function(nrSimulations) {
 	
 	### now make a new table based on all the data that was collected
 	tableAllSamples <- data.frame(keypresses,times,deviations,strats,steers)
-	
 	
 	#### In the table we collected data for multiple simulations per strategy. Now we want to know the average performane of each strategy.
 	#### These aspects are calculated using the "aggregate" function
@@ -454,20 +483,27 @@ runAllComplexStrategies <- function(nrSimulations) {
 	
 	
 	#### make a plot that visualizes all the strategies: note that trial time is divided by 1000 to get the time in seconds
-	with(agrResultsMeanDrift,plot(TrialTime/1000,abs(dev),pch=21,bg="dark grey",col="dark grey",log="x",xlab="Dial time (s)",ylab="Average Lateral Deviation (m)"))
+	# with(agrResultsMeanDrift,plot(TrialTime/1000,abs(dev),pch=21,bg="dark grey",col="dark grey",log="x",xlab="Dial time (s)",ylab="Average Lateral Deviation (m)"))
 	
+	ggplot(agrResultsMeanDrift, aes(TrialTime/1000, abs(dev))) +
+	  geom_point() +
+	  xlab("Dial time (s)") +
+	  ylab("Average Lateral Deviation (m)") +
+	  geom_point(aes(x=dialingTime[1], y=laneDev[1]), shape = 1, color = "blue") +
+	  geom_point(aes(x=dialingTime[4], y=laneDev[4]), shape = 2, color = "blue")
 	
 	### give a summary of the data	
-	summary(agrResultsMeanDrift$TrialTime)
-	
-	### correlation data
-	return(cor(agrResultsMeanDrift$TrialTime, agrResultsMeanDrift$dev))
-  
+	# summary(agrResultsMeanDrift$TrialTime)
 }
 
 ```
 
+```{r, echo = FALSE, warning = FALSE, message = FALSE}
 
+library(ggplot2)
+runAllComplexStrategies(nrSimulations = 1)
+
+```
 
 
 
