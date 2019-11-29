@@ -475,6 +475,14 @@ give_breakpoints <- function(strat) {
   breakpoints
 }
 
+
+
+
+```
+
+```{r q5a1}
+
+
 steeringTimeOptions <- c(2,4,6,8,10,12)
 
 runAllComplexStrategies <- function(nrSimulations,phoneNumber) {
@@ -494,7 +502,7 @@ runAllComplexStrategies <- function(nrSimulations,phoneNumber) {
 	### iterate through all strategies
 	## in this simple model we assume that a participant uses a consistent strategy throughout the trial. That is, they only type each time 1 digit, or type 2 digits at a time, or type 3 digits at a time (i.e., all possible ways of 1:phoneStringLength: 1, 2,3,4, ...11)
 	
-	for (i in 1:10) #(i in 1:nrow(all_strategies))
+	for (i in 1:nrow(all_strategies))
 	{
 		## quick way of calculating positions to interleave: repeat strategy & multiply with position in vector (e.g., 333*123 = 369 this means: you interleave BEFORE every 3rd digit (333), and there are 3 positions to interleave (1st, 2nd, 3rd, or 123). Therefore you interleave BEFORE digits 3 (3*1), 6 (3*2), and 9 (3*3))
 	  
@@ -512,7 +520,7 @@ runAllComplexStrategies <- function(nrSimulations,phoneNumber) {
 		### now run a trial (runOneTrial) for all combinations of how frequently you update the steering when you are steering (locSteerTimeOptions) and for the nuber of simulations that you want to run for each strategy (nrSimulations)
 		for (steerTimes in locSteerTimeOptions)
 		{
-			for (i in 1:nrSimulations)
+			for (j in 1:nrSimulations)
 			{
 
 				### run the simulation and store the output in a table
@@ -537,12 +545,52 @@ runAllComplexStrategies <- function(nrSimulations,phoneNumber) {
 	### now make a new table based on all the data that was collected
 	tableAllSamples <- data.frame(keypresses,times,deviations,strats,steers)
 	
-	tableAllSamples
+		## calculate average deviation at each keypress (keypresses), for each unique strategy variation (strats and steers)
+	agrResults <- with(tableAllSamples,aggregate(deviations,list(keypresses=keypresses, strats= strats, steers= steers),mean))
+	agrResults$dev <- agrResults$x
+	
+	
+	### also calculate the time interval
+	agrResults$times <- with(tableAllSamples,aggregate(times,list(keypresses=keypresses, strats= strats, steers= steers),mean))$x
+		
+	
+	###now calculate mean drift across the trial
+	agrResultsMeanDrift <-  with(agrResults,aggregate(dev,list(strats= strats, steers= steers),mean))
+	agrResultsMeanDrift$dev <- agrResultsMeanDrift$x
+	
+	### and mean trial time
+	agrResultsMeanDrift$TrialTime <-  with(agrResults[agrResults$keypresses ==11,],aggregate(times,list( strats= strats, steers= steers),mean))$x	
+	
+	
+	#### make a plot that visualizes all the strategies: note that trial time is divided by 1000 to get the time in seconds
+	ggplot(data = agrResultsMeanDrift, aes(TrialTime/1000, abs(dev))) +
+	  geom_point(color="darkgrey") +
+	  geom_point(aes(x = steer_focus[1], y = dual_steer_data[1])) +
+	  geom_point(aes(x = dial_focus[1], y = dual_dial_data[1])) +
+	  xlab("Dial time (s)") +
+	  ylab("Average Lateral Deviation (m)")
+	  
+	
+
+	#with(agrResultsMeanDrift,plot(TrialTime/1000,abs(dev),pch=21,bg="dark grey",col="dark grey",log="x",xlab="Dial time (s)",ylab="Average Lateral Deviation (m)"))
+	
+	#calculate correlation
+	#corr <- cor(agrResultsMeanDrift$TrialTime, agrResultsMeanDrift$dev)
+	
+	
+	### give a summary of the data	
+	#corr
+	#summary(agrResultsMeanDrift$TrialTime)
 }
 
 ```
 
-```{r q5a1}
+
+```{r q5a2}
 
 runAllComplexStrategies(1, "07854325698")
+
+
+
+
 ```
