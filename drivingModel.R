@@ -24,11 +24,11 @@ startingPositionInLane <- 0.27 			#assume that car starts already away from lane
 
 #parameters for deviations in car drift due the simulator environment: See Janssen & Brumby (2010) page 1555
 gaussDeviateMean <- 0
-gaussDeviateSD <- 0.13
+gaussDeviateSD <- 0.07 # 0.13
 
 #When the car is actively contorlled, we calculate a value using equation (1) in Janssen & Brumby (2010). However, some noise is added on top of this equation to account for variation in human behavior. See Janssen & Brumby (2010) page 1555. Also see function "updateSteering" on how this function is used
 gaussDriveNoiseMean <- 0
-gaussDriveNoiseSD <- 0.1	#in meter/sec
+gaussDriveNoiseSD <- 0.053 # 0.1	#in meter/sec
 
 timeStepPerDriftUpdate <- 50 ### msec: what is the time interval between two updates of lateral position?
 
@@ -42,7 +42,7 @@ startvelocity <- 0 	#a global parameter used to store the lateral velocity of th
 ### all times in milliseconds
 
 ## times for dialing
-singleTaskKeyPressTimes <- c(400,400,400,400,400,400,400,400,400,400,400)   #digit times needed per keypress at that specific position (note: normalized for chunk retrieval time at digits 1 and 6 --- a retrieval cost would come on top of this)
+singleTaskKeyPressTimes <- rep(275, 11)   #digit times needed per keypress at that specific position (note: normalized for chunk retrieval time at digits 1 and 6 --- a retrieval cost would come on top of this)
 
 
 digitTypeUK <- c("chunk","oth","oth","oth","oth","chunk","oth","oth","oth","oth","oth")  ### is each digit either the start of a chunk or some other digit?
@@ -275,6 +275,9 @@ runAllSimpleStrategies <- function(nrSimulations,phoneNumber)
 	
 	### give a summary of the data	
 	summary(agrResultsMeanDrift$TrialTime)
+	
+	### correlation data
+	return(cor(agrResultsMeanDrift$TrialTime, agrResultsMeanDrift$dev))
 
 }
 
