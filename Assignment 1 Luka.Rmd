@@ -443,7 +443,6 @@ It may be good to use 100 simulations when gathering final results about the fin
 
 ```{r q5a}
 
-
 generate_strategies <- function(n) {
   #give all strategies of length n
   
@@ -464,24 +463,9 @@ generate_strategies <- function(n) {
 
 all_strategies <- generate_strategies(10)
 
-give_breakpoints <- function(strat) {
-  breakpoints <- c()
-  
-  for (i in 1:length(strat)) {
-    if (strat[i]) {
-      breakpoints <- c(breakpoints, c(i))
-    }
-  }
-  breakpoints
-}
-
-
-
-
 ```
 
 ```{r q5a1}
-
 
 steeringTimeOptions <- c(2,4,6,8,10,12)
 
@@ -505,7 +489,8 @@ runAllComplexStrategies <- function(nrSimulations,phoneNumber) {
 	{
 		## quick way of calculating positions to interleave: repeat strategy & multiply with position in vector (e.g., 333*123 = 369 this means: you interleave BEFORE every 3rd digit (333), and there are 3 positions to interleave (1st, 2nd, 3rd, or 123). Therefore you interleave BEFORE digits 3 (3*1), 6 (3*2), and 9 (3*3))
 	  
-	  strategy <- give_breakpoints(all_strategies[i,])
+	  #get breakpoints
+	  strategy <- which(all_strategies[i,])
 		
 
 		locSteerTimeOptions <- steeringTimeOptions
@@ -569,8 +554,9 @@ complex_sims_results <- runAllComplexStrategies(1, "07854325698")
 
 ```
 
+The plot below shows the simulation results together with the human data
 
-```{r q5a2}
+```{r q5a2, echo = FALSE}
 
 complex_sims_results$TrialTime <- complex_sims_results$TrialTime / 1000
 
@@ -602,6 +588,7 @@ natural_breakpoint_sims <- subset(complex_sims_results, strats == target_strat_n
 
 
 #plot all strategies
+
 ggplot(data = complex_sims_results) +
   geom_point(aes(TrialTime, abs(dev), color="Simulations"), size = 0.2) +
   
@@ -615,11 +602,13 @@ ggplot(data = complex_sims_results) +
   
   geom_point(data = natural_breakpoint_sims, aes(TrialTime, abs(dev), color="Natural breakpoint simulations")) +
   
-  
   xlab("Dial time (s)") +
   ylab("Average Lateral Deviation (m)") +
   labs(color = "Data source")
 ```
+
+### Question 5B
+
 
 ### Question 5C
 
