@@ -44,7 +44,6 @@ summaryDataCond1 <- summarizeData(subset(totalDialingTime, partOfExperiment == "
 summaryDataCond2 <- summarizeData(subset(totalDialingTime, partOfExperiment == "dualDialFocus"))
 
 dialingTime <- c(summaryDataCond1, summaryDataCond2)
-dialingTime <- dialingTime / 1000
 
 results <- data.frame("M" = paste(round(c(summaryDataCond1[1], summaryDataCond2[1]), 3),  " ms"),
                    "SD" = paste(round(c(summaryDataCond1[2], summaryDataCond2[2]), 3),  " ms"),
@@ -439,7 +438,7 @@ runAllComplexStrategies <- function(nrSimulations,phoneNumber) {
 		### now run a trial (runOneTrial) for all combinations of how frequently you update the steering when you are steering (locSteerTimeOptions) and for the nuber of simulations that you want to run for each strategy (nrSimulations)
 		for (steerTimes in locSteerTimeOptions)
 		{
-			for (j in 1:1)
+			for (j in 1:nrSimulations)
 			{
 
 				### run the simulation and store the output in a table
@@ -484,26 +483,6 @@ runAllComplexStrategies <- function(nrSimulations,phoneNumber) {
 	### and mean trial time
 	agrResultsMeanDrift$TrialTime <-  with(agrResults[agrResults$keypresses ==11,],aggregate(times,list( strats= strats, steers= steers),mean))$x	
 	
-	
-	#### make a plot that visualizes all the strategies: note that trial time is divided by 1000 to get the time in seconds
-	# with(agrResultsMeanDrift,plot(TrialTime/1000,abs(dev),pch=21,bg="dark grey",col="dark grey",log="x",xlab="Dial time (s)",ylab="Average Lateral Deviation (m)"))
-	
-	ggplot(data = agrResultsMeanDrift) +
-	  geom_point(aes(TrialTime/1000, abs(dev), color = "Simulations")) +
-	  xlab("Dial time (s)") +
-	  ylab("Average Lateral Deviation (m)") +
-	  geom_point(aes(x= (dialingTime[1] / 1000), y=laneDev[1]), shape = 1, color = "Dial focus trials") +
-	  geom_point(aes(x= (dialingTime[4] / 1000), y=laneDev[4]), shape = 2, color = "Steer focus trials") +
-	  geom_errorbar(aes(x = (dialingTime[1] / 1000), ymin = laneDev[1] - laneDev[3], ymax = laneDev[1] + laneDev[3]), size = 1, width = 0.2, position = position_dodge(0.05), color = "Dial focus trials") +
-	  geom_errorbar(aes(x = (dialingTime[4] / 1000), ymin = laneDev[4] - laneDev[6], ymax = laneDev[4] + laneDev[6]), size = 1, width = 0.2, position = position_dodge(0.05), color = "Steer focus trials") +
-	  geom_errorbarh(aes(y = laneDev[1], xmin = (dialingTime[1] / 1000) - (dialingTime[3] / 1000), xmax = (dialingTime[1] / 1000) + (dialingTime[3] / 1000)), size = 1, width = 0.2, position = position_dodge(0.05), height = 0.05, "Dial focus trials") +
-	  geom_errorbarh(aes(y = laneDev[4], xmin = (dialingTime[4] / 1000) - (dialingTime[6] / 1000), xmax = (dialingTime[4] / 1000) + (dialingTime[6] / 1000)), size = 1, width = 0.2, position = position_dodge(0.05), height = 0.05, color = "Steer focus trials") +
-	  labs(color = "Data source")
-	
-	
-	### give a summary of the data	
-	# summary(agrResultsMeanDrift$TrialTime)
-	
 	return(agrResultsMeanDrift)
 }
 
@@ -511,22 +490,58 @@ runAllComplexStrategies <- function(nrSimulations,phoneNumber) {
 
 ```{r, echo = FALSE, warning = FALSE, message = FALSE}
 
-library(ggplot2)
+results <- runAllComplexStrategies(nrSimulations = 50)
+
+save(results, "ComplexStrategies50Sim.R")
+
+results$TrialTime <- results$TrialTime / 1000
 
 dialingTime <- dialingTime / 1000
 dialTimeDialMean <- dialingTime[1]
 dialTimeSteerMean <- dialingTime[4]
 dialTimeDialSE <- dialingTime[3]
-dialTimeSteerSE <- dialigTime[6]
+dialTimeSteerSE <- dialingTime[6]
 
 laneDevDialMean <- laneDev[1]
 laneDevSteerMean <- laneDev[4]
 laneDevDialSE <- laneDev[3]
 laneDevSteerSE <- laneDev[6]
 
+#get trials that only interleave between 5 and 6
 
+#find index of target strategy
+target_strat <- c(FALSE, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE, FALSE, FALSE, FALSE)
+target_strat_n <- 0
+for(i in 1:nrow(all_strategies)) {
+  if (identical(all_strategies[i,], target_strat)) {
+    target_strat_n <- i
+    break
+  }
+}
 
-results <- runAllComplexStrategies(nrSimulations = 50)
+natural_breakpoint_sims <- subset(results, strats == target_strat_n)
+
+library(ggplot2)
+
+#plot all strategies
+ggplot(data = results) +
+  geom_point(aes(TrialTime, abs(dev), color="Simulations"), size = 0.2) +
+  
+  geom_point(aes(x = dialTimeSteerMean, y = laneDevSteerMean, color = "Steer focus trials")) +
+  geom_errorbar(aes(x = dialTimeSteerMean, ymin = laneDevSteerMean - laneDevSteerSE, ymax = laneDevSteerMean + laneDevSteerSE, color = "Steer focus trials", width = 0.2)) +
+  geom_errorbarh(aes(xmin = dialTimeSteerMean - dialTimeSteerSE, xmax = dialTimeSteerMean + dialTimeSteerSE, y = laneDevSteerMean, color = "Steer focus trials", height = 0.02)) +
+  
+  geom_point(aes(x = dialTimeDialMean , y = laneDevDialMean, color =  "Dial focus trials")) +
+  geom_errorbar(aes(x = dialTimeDialMean , ymin = laneDevDialMean - laneDevDialSE, ymax = laneDevDialMean + laneDevDialSE, color =  "Dial focus trials", width = 0.2)) +
+  geom_errorbarh(aes(xmin = dialTimeDialMean  - dialTimeDialSE, xmax = dialTimeDialMean  + dialTimeDialSE, y = laneDevDialMean, color =  "Dial focus trials", height = 0.02)) + 
+  
+  geom_point(data = natural_breakpoint_sims, aes(TrialTime, abs(dev), color="Natural breakpoint simulations")) +
+  
+  
+  xlab("Dial time (s)") +
+  ylab("Average Lateral Deviation (m)") +
+  labs(color = "Data source")
+
 
 ```
 
@@ -534,15 +549,14 @@ C.
 
 ```{r, echo = FALSE, message = FALSE, warning = FALSE}
 library(dplyr)
-agrResultsMeanDrift$TrialTime <-agrResultsMeanDrift$TrialTime / 1000
 
-stratsDial <- agrResultsMeanDrift %>%
-  filter(TrialTime > (dialingTime[1] - dialingTime[3]) & TrialTime < (dialingTime[1] + dialingTime[3])) %>%
-           filter(abs(dev) > (laneDev[1] - laneDev[3]) & abs(dev) < (laneDev[1] + laneDev[3]))
+stratsDial <- results %>%
+  filter(TrialTime > (dialTimeDialMean - dialTimeDialSE) & TrialTime < (dialTimeDialMean + dialingTime[3])) %>%
+           filter(abs(dev) > (laneDevDialMean - laneDevDialSE) & abs(dev) < (laneDevDialMean + laneDevDialSE))
 
-stratsSteer <- agrResultsMeanDrift %>%
-  filter(TrialTime > (dialingTime[4] - dialingTime[6]) & TrialTime < (dialingTime[4] + dialingTime[6])) %>%
-           filter(abs(dev) > (laneDev[4] - laneDev[6]) & abs(dev) < (laneDev[4] + laneDev[6])) 
+stratsSteer <- results %>%
+  filter(TrialTime > (dialTimeSteerMean - dialTimeSteerSE) & TrialTime < (dialTimeSteerMean + dialTimeSteerSE)) %>%
+           filter(abs(dev) > (laneDevSteerMean - laneDevSteerSE) & abs(dev) < (laneDevSteerMean + laneDevSteerSE)) 
 
 ```
 
