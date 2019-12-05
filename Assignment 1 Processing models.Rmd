@@ -19,6 +19,9 @@ knitr::opts_chunk$set(echo = TRUE)
 A.
 
 ```{r, echo = FALSE, warning = FALSE, message = FALSE}
+
+source("DrivingModel.R")
+
 load("keyPressDataWithLaneDeviation.Rdata")
   
 NoErr <- subset(keyPressDataWithLaneDeviation, typingErrorMadeOnTrial == 0)
@@ -193,6 +196,8 @@ ggplot(trial_data, aes(time, deviation)) +
 C. 
 
 ```{r, echo = FALSE, warning = FALSE, message = FALSE}
+
+detach("package:rapportools", unload=TRUE) 
 
 min_pos <- min(min(driftData$posX), min(trial_data$deviation))
 min_pos <- floor(min_pos * 10) / 10
@@ -440,6 +445,7 @@ runAllComplexStrategies <- function(nrSimulations,phoneNumber) {
 		{
 			for (j in 1:nrSimulations)
 			{
+			  print(j)
 
 				### run the simulation and store the output in a table
 				locTab <- runOneTrial(strategy, steerTimes,normalPhoneStructure,phoneStringLength,phoneNumber)
@@ -492,7 +498,7 @@ runAllComplexStrategies <- function(nrSimulations,phoneNumber) {
 
 results <- runAllComplexStrategies(nrSimulations = 50)
 
-save(results, "ComplexStrategies50Sim.R")
+save(results, file = "ComplexStrategies50Sim.R")
 
 results$TrialTime <- results$TrialTime / 1000
 
