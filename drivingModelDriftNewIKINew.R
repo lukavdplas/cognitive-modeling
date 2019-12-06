@@ -17,7 +17,7 @@ require(gtools)
 
 
 ### parameters related to steering
-steeringTimeOptions <- c(1,2,3,4,5,6,7,8,9,10,11,12)    #list op options for how many steering corrections can be made each time that attention is paid to steering (of steeringUpdateTime sec each) (this influences the strategy alternatives)
+steeringTimeOptions <- c(2,4,6,8,10,12)    #list op options for how many steering corrections can be made each time that attention is paid to steering (of steeringUpdateTime sec each) (this influences the strategy alternatives)
 steeringUpdateTime <- 250    #in milliseconds
 startingPositionInLane <- 0.27 			#assume that car starts already away from lane centre (in meters)
 
@@ -473,7 +473,6 @@ runAllComplexStrategies <- function(nrSimulations,phoneNumber) {
     {
       for (j in 1:nrSimulations)
       {
-        print(j)
         
         ### run the simulation and store the output in a table
         locTab <- runOneTrial(strategy, steerTimes,normalPhoneStructure,phoneStringLength,phoneNumber)
