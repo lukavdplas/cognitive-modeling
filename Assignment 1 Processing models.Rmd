@@ -650,22 +650,10 @@ Old drift parameter; old IKI parameter; 10 simulations
 plotSimulations(resultsSimpleDriftOldIKIOldSim10)
 ```
 
-Old drift parameter; old IKI parameter; 50 simulations
-
-```{r, echo = FALSE, message =FALSE, warning = FALSE}
-plotSimulations(resultsSimpleDriftOldIKIOldSim50)
-```
-
 Old drift parameter; new IKI parameter; 10 simulations
 
 ```{r, echo = FALSE, message =FALSE, warning = FALSE}
 plotSimulations(resultsSimpleDriftOldIKINewSim10)
-```
-
-Old drift parameter; new IKI parameter; 50 simulations
-
-```{r, echo = FALSE, message =FALSE, warning = FALSE}
-plotSimulations(resultsSimpleDriftOldIKINewSim50)
 ```
 
 New drift parameter; old IKI parameter; 10 simulations
@@ -674,16 +662,29 @@ New drift parameter; old IKI parameter; 10 simulations
 plotSimulations(resultsSimpleDriftNewIKIOldSim10)
 ```
 
-New drift parameter; old IKI parameter; 50 simulations
-
-```{r, echo = FALSE, message =FALSE, warning = FALSE}
-plotSimulations(resultsSimpleDriftNewIKIOldSim50)
-```
-
 New drift parameter; new IKI parameter; 10 simulations
 
 ```{r, echo = FALSE, message =FALSE, warning = FALSE}
 plotSimulations(resultsSimpleDriftNewIKINewSim10)
+```
+
+Old drift parameter; old IKI parameter; 50 simulations
+
+```{r, echo = FALSE, message =FALSE, warning = FALSE}
+plotSimulations(resultsSimpleDriftOldIKIOldSim50)
+```
+
+
+Old drift parameter; new IKI parameter; 50 simulations
+
+```{r, echo = FALSE, message =FALSE, warning = FALSE}
+plotSimulations(resultsSimpleDriftOldIKINewSim50)
+```
+
+New drift parameter; old IKI parameter; 50 simulations
+
+```{r, echo = FALSE, message =FALSE, warning = FALSE}
+plotSimulations(resultsSimpleDriftNewIKIOldSim50)
 ```
 
 New drift parameter; new IKI parameter; 50 simulations
@@ -691,6 +692,23 @@ New drift parameter; new IKI parameter; 50 simulations
 ```{r, echo = FALSE, message =FALSE, warning = FALSE}
 plotSimulations(resultsSimpleDriftNewIKINewSim50)
 ```
+
+We will consider the model a good fit of the human data if the results for the steering condition fall within the range of model predictions. For a few of the models, the human data fall completely outside of the range of the model; this means that the model does not predict human-like results for any strategy.
+Since we will use the model to draw a conclusion on what strategies humans use (natural breakpoint or not), we should not use predictions for specific strategies to determine the overall model fit. Therefore, we do not look at the natural breakpoint predictions to determine model fit.
+
+Simulations: if we compare the graphs with 10 simulations to those with 50 simulations, we can see that running 10 simulations seems to lead to a slightly better fit with human data. However, this is due to the spread in lateral deviation decreasing with more simulations, because there is more noise in the data. The overall pattern of the model predictions remains the same irregardless of the number of simulations. As argued by Roberts and Pashler (2000), a good model should sufficiently constrain possible outcomes. The 10 simulation predictions have a better fit only because they restrict the possible outcomes less, by allowing more noise. We conclude that the 10 simulation models are not more valid models than the 50 simulation models.
+
+Drift parameter and IKI parameter: for both parameters we see that by calibrating these parameters the model fit increases compared to their old values. In the model where both parameters have their old values, human data seem to be fairly far off from the model predictions. Then, as one of the parameters is calibrated, the model fit increases as the human data fall at the edge of the range of model predictions. Finally, if both parameters are calibrated the human data fall well within the range of the model predictions. 
+
+For these two parameters, we can add that when calibrating them not only do they produce a better fit, but we have a priori motivation to calibrate their values. Since the experiment used a different simulation and a different dialling interface than the original experiment, it makes sense that these parameters should be updated.
+
+Furthermore, the model seems to be quite reliable/generalizable because by adjusting these two parameters, the model still fits the human data well, as in the original experiment. 
+
+For all 8 models, the human data of the steering condition does not overlap with one of the natural breakpoint strategies. As a result, all models indicate that humans do not seem to interleave solely at the natural breakpoint. However, this conclusion can only be drawn under the assumption that the model is valid. This at least requires that some other strategy or strategies should fall within the range of human data, which is not true for all models. 
+
+
+
+
 
 
 
