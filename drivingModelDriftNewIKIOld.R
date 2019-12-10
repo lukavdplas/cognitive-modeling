@@ -74,8 +74,6 @@ analysisOfHumanData <- function()
 }
 
 
-
-
 ##new function
 runOneTrial <- function(strategy,nrSteeringUpdates,normalPhoneStructure,phoneStringLength,phoneNumber)   #### strategy stores where participant interleaves
 {
@@ -457,7 +455,7 @@ runAllComplexStrategies <- function(nrSimulations,phoneNumber) {
   {
     ## quick way of calculating positions to interleave: repeat strategy & multiply with position in vector (e.g., 333*123 = 369 this means: you interleave BEFORE every 3rd digit (333), and there are 3 positions to interleave (1st, 2nd, 3rd, or 123). Therefore you interleave BEFORE digits 3 (3*1), 6 (3*2), and 9 (3*3))
     
-    strategy <- give_breakpoints(strategies_less_than_5[i,])
+    strategy <- which(strategies_less_than_5[i,])
     
     
     locSteerTimeOptions <- steeringTimeOptions

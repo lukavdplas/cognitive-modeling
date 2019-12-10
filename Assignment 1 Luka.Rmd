@@ -9,6 +9,8 @@ output: pdf_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+## Section I: Human data
+
 ### Question 1A
 
 ```{r q1A, echo=FALSE}
@@ -166,7 +168,22 @@ load("tableOfDriftValuesCalibration.Rdata")
 driftdata <- subset(tableOfDriftValuesCalibration, trialTime >= 15000 & trialTime <= 18000)
 driftdata$trial <- as.factor(driftdata$trial)
 
-ggplot(driftdata, aes(trialTime, posX)) +
+corrected_driftdata <- driftdata
+
+get_start_dev <- function(trialN) {
+  trial_data <- subset(driftdata, trial == trialN)
+  start_data <- subset(trial_data, trialTime == min(trial_data$trialTime))
+  start_data$posX
+}
+
+for (i in 1:nrow(corrected_driftdata)) {
+  trialN <- corrected_driftdata[i, "trial"]
+  start_dev <- get_start_dev(trialN)
+  corrected_driftdata[i, "posX"] <- corrected_driftdata[i, "posX"] - start_dev
+}
+
+
+ggplot(corrected_driftdata, aes(trialTime, posX)) +
   geom_line(aes(group = trial, color = trial)) +
   theme(legend.position = "none")
 
@@ -290,7 +307,7 @@ sds <- seq(from  = 0.01, to = 0.13, by = 0.01)
 sd_results <- sapply(sds, FUN = get_sd_result)
 sd_differences <- sapply(sd_results, FUN = get_differences)
 
-sds_df <- data.frame("SD" = sds, "Difference" <- differences)
+sds_df <- data.frame("SD" = sds, "Difference" <- sd_differences)
 
 ggplot(sds_df, aes(SD, Difference)) + 
   geom_line() + 
@@ -372,9 +389,6 @@ We picked a value of 275 ms, because that amount of rounding seemed acceptable.
 
 source("drivingModel.R")
 
-#ex_trial <- runOneTrial(c(), 5, c(1,6), 11, "07854325698")
-#ex_trial <- runOneTrial(c(4,5), 5, c(1,6), 11, "07854325698")
-
 correlations <- data.frame()
 
 corr <- runAllSimpleStrategies(1, "07854325698")
@@ -425,7 +439,8 @@ correlations <- rbind(correlations, c(200, corr))
 
 
 ### Question 4B
-The data show that results become less noisy with more simulations: the range of total deviation is smaller and data show a clear downward trend between deviation and dial time. We wanted to quantify this result: a clearer trend with fewer outliers will give a stronger correlation between dialing time and deviation. This correlation is plotter for all simulation counts below.
+
+The data show that results become less noisy with more simulations: the range of total deviation is smaller and data show a clear downward trend between deviation and dial time. We wanted to quantify this result: a clearer trend with fewer outliers will give a stronger correlation between dialing time and deviation. This correlation is plotted for all simulation counts below.
 
 ```{r q4b, echo=FALSE}
 
@@ -437,7 +452,7 @@ ggplot(correlations, aes(N, timeDeviationCorrelation)) +
 ```
 
 We estimate that the 50 simulations should work well in development: they do not take a very long time to run, but already show a clear trend in the data. The correlation plot shows that after 50 simulations, the amount of trend is not changing that much anymore.
-It may be good to use 100 simulations when gathering final results about the final model, since the data still show a clearer correlation for 100 simulations. However, there is almost no increase between 100 and 200.
+If time allows, it may be good to run 100 simulations instead of 50, since there is some increase in correlation (and therefore a decrease in the noise) between 50 and 100 simulations. However, there is almost no increase between 100 and 200.
 
 ### Question 5A
 
@@ -661,7 +676,7 @@ colnames(plot_df) <- c("strategy", "keypress", "interleave")
 
 ggplot(plot_df) +
   geom_raster(aes(x = keypress, y = strategy, fill = factor(interleave))) +
-  scale_fill_manual(values = c("grey", "blue")) +
+  scale_fill_manual(values = c("cadetblue3", "coral3")) +
   scale_x_continuous(breaks = seq(1, 10, 1), minor_breaks = NULL) +
   scale_y_continuous(breaks = seq(1,length(matching_strategies),1), minor_breaks = NULL) +
   theme(axis.text.y = element_blank(), axis.ticks.y = element_blank())
@@ -714,3 +729,41 @@ ggplot(data = complex_sims) +
 
 As can be seen in the graph, the data from simulations with more than five breakpoints are further away from the human results, and none of them come close to falling within the human range of performance. Based on this, we conclude that it is valid to leave out these strategies. We ran our simulations for different models using all complex strategies where the total number of breakpoints is at most 5.
 
+```{r q6aplot, echo = FALSE}
+
+plot_sim_results <- function(dataframe) {
+  dataframe$TrialTime <- dataframe$TrialTime / 1000
+
+  ggplot(data = dataframe) +
+  geom_point(aes(TrialTime, abs(dev), color="Simulations"), size = 0.2) +
+  
+  geom_point(aes(x = steer_dial_m, y = steer_dev_m, color = "Steer focus trials")) +
+  geom_errorbar(aes(x = steer_dial_m, ymin = steer_dev_m - steer_dev_se, ymax = steer_dev_m + steer_dev_se, color = "Steer focus trials", width = 0.2)) +
+  geom_errorbarh(aes(xmin = steer_dial_m - steer_dial_se, xmax = steer_dial_m + steer_dial_se, y = steer_dev_m, color = "Steer focus trials", height = 0.02)) +
+  
+  geom_point(aes(x = dial_dial_m, y = dial_dev_m, color =  "Dial focus trials")) +
+  geom_errorbar(aes(x = dial_dial_m, ymin = dial_dev_m - dial_dev_se, ymax = dial_dev_m + dial_dev_se, color =  "Dial focus trials", width = 0.2)) +
+  geom_errorbarh(aes(xmin = dial_dial_m - dial_dial_se, xmax = dial_dial_m + dial_dial_se, y = dial_dev_m, color =  "Dial focus trials", height = 0.02)) + 
+  
+  xlab("Dial time (s)") +
+  ylab("Average Lateral Deviation (m)") +
+  labs(color = "Data source") +
+  theme(legend.position = "bottom")
+}
+
+
+load("resultsSimpleDriftNewIKIOldSim10.RData")
+plot_sim_results(resultsSimpleDriftNewIKIOldSim10)
+
+
+load("resultsSimpleDriftNewIKIOldSim50.RData")
+plot_sim_results(resultsSimpleDriftNewIKIOldSim50)
+
+
+load("resultsSimpleDriftNewIKINewSim10.RData")
+plot_sim_results(resultsSimpleDriftNewIKINewSim10)
+
+
+load("resultsSimpleDriftNewIKINewSim50.RData")
+plot_sim_results(resultsSimpleDriftNewIKINewSim50)
+```
