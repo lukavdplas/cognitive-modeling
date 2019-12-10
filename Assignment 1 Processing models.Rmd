@@ -362,6 +362,8 @@ data.frame("N of simulations"= c(1, 5, 10, 50, 100, 200), "Correlation trial tim
 B. We can see that as the number of simulations increases, the data becomes less noisy and more stable. Additionally, as the number of simulations increases the range of the average lateral deviation decreases somewhat. Furthermore, we looked at the correlation between trial time and lateral deviation for all simulation lengths. The correlation becomes larger as the number of simulations increases, and clearly reaches a maximum at 100 simulations. This means that somewhere around 100 simulations is the optimal choice (data is stable an additional simulations provide no information gain anymore).
 However, the computing time increases quite a bit as we reach 100-200 simulations. Therefore, we suggest that it would be best to use around 50 simulations when still working on the model, and then use around 100 simulations for the final model predictions. 
 
+### Question 5
+
 ```{r, echo = FALSE, warning = FALSE, message = FALSE}
 
 generate_strategies <- function(n) {
@@ -589,6 +591,8 @@ for (i in 1:nrow(stratsSteer)) {
 
 ### Question 6
 
+We only changed the value of the gaussDeviateSD parameter to compare the use of different drift versions on the model fit. 
+
 ```{r}
 
 less_than_5_strats <- c()
@@ -600,25 +604,52 @@ strategies_less_than_5 <- all_strategies[less_than_5_strats, ]
 
 # Create 8 models: drift (old/new); IKI (old/new); Nr simulations (10/50)
 
-# Rianne
-source("drivingModelDriftOldIKIOld.R")
-resultsSimpleDriftOldIKIOldSim10 <- runAllComplexStrategies(nrSimulations = 10)
-resultsSimpleDriftOldIKIOldSim50 <- runAllComplexStrategies(nrSimulations = 50)
+load("resultsSimpleDriftOldIKIOldSim10.R")
+load("resultsSimpleDriftOldIKIOldSim50.R")
+load("resultsSimpleDriftOldIKINewSim10.R")
+load("resultsSimpleDriftOldIKINewSim50.R")
+load("resultsSimpleDriftNewIKIOldSim10.Rdata")
+load("resultsSimpleDriftNewIKIOldSim50.Rdata")
+load("resultsSimpleDriftNewIKINewSim10.Rdata")
+load("resultsSimpleDriftNewIKINewSim50.Rdata")
 
-source("drivingModelDriftOldIKINew.R")
-resultsSimpleDriftOldIKINewSim10 <- runAllComplexStrategies(nrSimulations = 10)
-resultsSimpleDriftOldIKINewSim50 <- runAllComplexStrategies(nrSimulations = 50)
+plotSimulations <- function(results) {
 
-# Luka
-source("drivingModelDriftNewIKIOld.R")
-resultsSimpleDriftNewIKIOldSim10 <- runAllComplexStrategies(nrSimulations = 10)
-resultsSimpleDriftNewIKIOldSim50 <- runAllComplexStrategies(nrSimulations = 50)
+results$TrialTime <- results$TrialTime / 1000
 
-source("drivingModelDriftNewIKINew.R")
-resultsSimpleDriftNewIKINewSim10 <- runAllComplexStrategies(nrSimulations = 10)
-resultsSimpleDriftNewIKINewSim50 <- runAllComplexStrategies(nrSimulations = 50)
+natural_breakpoint_sims <- subset(results, strats == target_strat_n)
 
+#plot all strategies
+ggplot(data = results) +
+  geom_point(aes(TrialTime, abs(dev), color="Simulations"), size = 0.2) +
+  
+  geom_point(aes(x = dialTimeSteerMean, y = laneDevSteerMean, color = "Steer focus trials")) +
+  geom_errorbar(aes(x = dialTimeSteerMean, ymin = laneDevSteerMean - laneDevSteerSE, ymax = laneDevSteerMean + laneDevSteerSE, color = "Steer focus trials", width = 0.2)) +
+  geom_errorbarh(aes(xmin = dialTimeSteerMean - dialTimeSteerSE, xmax = dialTimeSteerMean + dialTimeSteerSE, y = laneDevSteerMean, color = "Steer focus trials", height = 0.02)) +
+  
+  geom_point(aes(x = dialTimeDialMean , y = laneDevDialMean, color =  "Dial focus trials")) +
+  geom_errorbar(aes(x = dialTimeDialMean , ymin = laneDevDialMean - laneDevDialSE, ymax = laneDevDialMean + laneDevDialSE, color =  "Dial focus trials", width = 0.2)) +
+  geom_errorbarh(aes(xmin = dialTimeDialMean  - dialTimeDialSE, xmax = dialTimeDialMean  + dialTimeDialSE, y = laneDevDialMean, color =  "Dial focus trials", height = 0.02)) + 
+  
+  geom_point(data = natural_breakpoint_sims, aes(TrialTime, abs(dev), color="Natural breakpoint simulations")) +
+  
+  
+  xlab("Dial time (s)") +
+  ylab("Average Lateral Deviation (m)") +
+  labs(color = "Data source") +
+  scale_y_continuous(breaks = seq(0, 1.5, 0.1)) +
+  coord_cartesian(ylim = c(0, 1.5))
 
+} 
+
+plotSimulations(resultsSimpleDriftOldIKIOldSim10)
+plotSimulations(resultsSimpleDriftOldIKIOldSim50)
+plotSimulations(resultsSimpleDriftOldIKINewSim10)
+plotSimulations(resultsSimpleDriftOldIKINewSim50)
+plotSimulations(resultsSimpleDriftNewIKIOldSim10)
+plotSimulations(resultsSimpleDriftNewIKIOldSim50)
+plotSimulations(resultsSimpleDriftNewIKINewSim10)
+plotSimulations(resultsSimpleDriftNewIKINewSim50)
 
 ```
 
