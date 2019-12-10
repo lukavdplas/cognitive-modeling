@@ -82,8 +82,12 @@ dual_dial_data <- avg_deviation_over_condition('dualDialFocus')
 
 ```
 
+Table:
 
-###Question 1C
+
+### Question 1C
+
+Figure 1: Lane deviation over time.
 
 ```{r q1c, echo=FALSE}
 
@@ -157,7 +161,15 @@ plot_data <- rbind(dual_dial_data_per_digit, dual_steer_data_per_digit)
 
 ### Question 1D
 
+For both conditions, it seems that participants did not interleave dialing for driving between the 5th and 6th key presses. At the 6th key press, the absolute lane deviation did not decrease compared to the 5th key press, while this would have been expected if participants were to focus on the road at this point.
+
+However, in the dialing focus condition we can see that from the 6th key press onwards participants tend to focus less on the road and thus show greater absolute lane deviation. This gives a kind of breakpoint in the plot. But this result cannot be explained by the hypothesis that particpants would interleave dialing for driving at this point in time. 
+
+## Section II: Fitting lateral drift of the car
+
 ### Question 2A
+
+Figure 2: Changes in the lateral position of the car over time (between 15 and 18 seconds).
 
 ```{r q2a, echo=FALSE}
 
@@ -192,6 +204,8 @@ ggplot(corrected_driftdata, aes(trialTime, posX)) +
 
 ### Question 2B
 
+Figure 3: Changes in the lateral position of the car over time (between 15 and 18 seconds) for 20 simulated trials.
+
 ```{r q2b, echo=FALSE}
 
 #get trials and timesteps
@@ -222,8 +236,9 @@ ggplot(trial_data, aes(time, deviation)) +
 
 ```
 
-
 ### Question 2C
+
+Figure 4: The distribution of car positions as measured in the human trial. 
 
 ```{r q2c, echo=FALSE}
 
@@ -238,6 +253,11 @@ ggplot(driftdata, aes(posX)) +
   coord_cartesian(xlim=  c(min_pos, max_pos), ylim=c(0, 350)) +
   xlab("lateral position") +
   ylab("frequency")
+```
+
+Figure 5: The distribution of car positions based on the simulated data. 
+
+```{r q2c, echo=FALSE}
 
 ggplot(trial_data, aes(deviation)) +
   geom_histogram(binwidth = 0.2) +
@@ -248,7 +268,6 @@ ggplot(trial_data, aes(deviation)) +
 
 
 ```
-
 
 ### Question 2D
 
@@ -265,7 +284,7 @@ print(table)
 
 ### Question 2E
 
-To find the optimal SD value, we searched through SD values from 0.01 to 0.13, with a step of 0.01. For each SD value, we calculated the standard deviation of the lateral position over 50 trials, and then calculated the absolute difference with the target SD, i.e. the one measured on the human trials. Below is a plot with these results.
+To find the optimal SD value, we searched through SD values from 0.01 to 0.13, with a step of 0.01. For each SD value, we calculated the standard deviation of the lateral position over 50 trials, and then calculated the absolute difference with the target SD, i.e. the one measured on the human trials. Below is a plot (Figure 6) with these results.
 
 ```{r q2e}
 
@@ -317,6 +336,8 @@ ggplot(sds_df, aes(SD, Difference)) +
 
 Based on these results, we chose to use an SD for the gaussian distribution of 0.07. This gives an SD of lateral position of 0.344.
 
+Figure 7: Changes in lane position over time for the individual simulated trials.
+
 ```{r q2e_2, echo=FALSE}
 
 opt_sd = 0.07
@@ -330,6 +351,8 @@ ggplot(sim_data, aes(time, deviation)) +
   theme(legend.position = "none")
 ```
 
+Figure 8: The distribution of car positions based on the simulated data using the new SD value. 
+
 ```{r q2e_3, echo=FALSE}
 
 ggplot(sim_data, aes(deviation)) +
@@ -341,9 +364,11 @@ ggplot(sim_data, aes(deviation)) +
 
 ```
 
-### Question 3A
+## Section III: Fitting Interkeypress intervals (IKIs)
 
 We changed the gaussDeviateSD in the driving model to 0.07 for drifting, and the gaussDriveNoiseSD to 0.053, to preserve the ratio between the two parameters.
+
+### Question 3A
 
 ```{r q3, echo=FALSE}
 
@@ -376,14 +401,15 @@ mean_keypress_time <- mean(all_times)
 
 The average keypress time is 272.5 ms.
 
-###Question 3B
+### Question 3B
 
 We picked a value of 275 ms, because that amount of rounding seemed acceptable.
 
+## Section IV: Expanding the strategy analysis
 
-###Question 4A
+### Question 4A
  
- For 1 simulation:
+For 1 simulation:
  
 ```{r q4a1, echo=FALSE}
 
@@ -404,8 +430,6 @@ corr <- runAllSimpleStrategies(5, "07854325698")
 correlations <- rbind(correlations, c(5, corr))
 ```
 
-
-
 For 10 simulations:
  
 ```{r q4a3, echo=FALSE}
@@ -413,7 +437,6 @@ For 10 simulations:
 corr <- runAllSimpleStrategies(10, "07854325698")
 correlations <- rbind(correlations, c(10, corr))
 ```
-
 
 For 50 simulations:
  
@@ -423,20 +446,21 @@ corr <- runAllSimpleStrategies(50, "07854325698")
 correlations <- rbind(correlations, c(50, corr))
 ```
 
+For 100 simulations:
+
 ```{r q4a5, echo=FALSE}
 
 corr <- runAllSimpleStrategies(100, "07854325698")
 correlations <- rbind(correlations, c(100, corr))
 ```
 
+For 200 simulations:
 
 ```{r q4a6, echo=FALSE}
 
 corr <- runAllSimpleStrategies(200, "07854325698")
 correlations <- rbind(correlations, c(200, corr))
 ```
-
-
 
 ### Question 4B
 
@@ -569,7 +593,7 @@ runAllComplexStrategies <- function(nrSimulations,phoneNumber) {
 
 ```
 
-The plot below shows the simulation results together with the human data
+Figure 9: Simulation results of the revised model together with human data.
 
 ```{r q5a2, echo = FALSE}
 
@@ -632,7 +656,7 @@ In the dial condition, the human performance falls outside of the range of the m
 
 ### Question 5C
 
-We selected the simulations for which the data fall within the margin of error of the steering condition for the human trials. This gave 30 strategies. Below, the breakpoints for each of these strategies is displayed.
+We selected the simulations for which the data fall within the margin of error of the steering condition for the human trials. This gave 30 strategies. Below, the breakpoints for each of these strategies is displayed (Figure 10).
 
 ```{r q5c, echo = FALSE}
 
@@ -691,11 +715,13 @@ A few things to note:
 
 We can definitely not conclude that humans must favour the "natural breakpoint" between the 5th and 6th digit, since the results for those simulations do not match with human data. However, the data do suggest that humans may take only one or two breaks, where the first break is often after keypress 2, 3, or 4.
 
+## Section V: Relationship between model flexibility and model fit
+
 ### Question 6
 
 Because all human-like results came from simulations with only one or two breakpoints, we hypothesised that the number of simulations can be reduced by leaving out the strategies with a very large number of breakpoints. If humans make very few breakpoints, there is no reason to run simulations for a lot of potential strategies that do not match human performance.
 
-To test this hypothesis, we separated the data from question 5 on whether there were at most 5 breaks. These results are plotted below.
+To test this hypothesis, we separated the data from question 5 on whether there were at most 5 breaks. These results are plotted below (Figure 11).
 
 ```{r q6a_1, echo=FALSE}
 
@@ -727,7 +753,7 @@ ggplot(data = complex_sims) +
 
 ```
 
-As can be seen in the graph, the data from simulations with more than five breakpoints are further away from the human results, and none of them come close to falling within the human range of performance. Based on this, we conclude that it is valid to leave out these strategies. We ran our simulations for different models using all complex strategies where the total number of breakpoints is at most 5.
+As can be seen in Figure 11, the data from simulations with more than five breakpoints are further away from the human results, and none of them come close to falling within the human range of performance. Based on this, we conclude that it is valid to leave out these strategies. We ran our simulations for different models using all complex strategies where the total number of breakpoints is at most 5.
 
 ```{r q6aplot, echo = FALSE}
 
@@ -767,3 +793,19 @@ plot_sim_results(resultsSimpleDriftNewIKINewSim10)
 load("resultsSimpleDriftNewIKINewSim50.RData")
 plot_sim_results(resultsSimpleDriftNewIKINewSim50)
 ```
+
+We will consider the model a good fit of the human data if the results for the steering condition fall within the range of model predictions. For a few of the models, the human data fall completely outside of the range of the model; this means that the model does not predict human-like results for any strategy.
+Since we will use the model to draw a conclusion on what strategies humans use (natural breakpoint or not), we should not use predictions for specific strategies to determine the overall model fit. Therefore, we do not look at the natural breakpoint predictions to determine model fit.
+
+Simulations: if we compare the graphs with 10 simulations to those with 50 simulations, we can see that running 10 simulations seems to lead to a slightly better fit with human data. However, this is due to the spread in lateral deviation decreasing with more simulations, because there is more noise in the data. The overall pattern of the model predictions remains the same irregardless of the number of simulations. As argued by Roberts and Pashler (2000), a good model should sufficiently constrain possible outcomes. The 10 simulation predictions have a better fit only because they restrict the possible outcomes less, by allowing more noise. We conclude that the 10 simulation models are not more valid models than the 50 simulation models.
+
+Drift parameter and IKI parameter: for both parameters we see that by calibrating these parameters the model fit increases compared to their old values. In the model where both parameters have their old values, human data seem to be fairly far off from the model predictions. Then, as one of the parameters is calibrated, the model fit increases as the human data fall at the edge of the range of model predictions. Finally, if both parameters are calibrated the human data fall well within the range of the model predictions. 
+
+For these two parameters, we can add that when calibrating them not only do they produce a better fit, but we have a priori motivation to calibrate their values. Since the experiment used a different simulation and a different dialling interface than the original experiment, it makes sense that these parameters should be updated.
+
+Furthermore, the model seems to be quite reliable/generalizable because by adjusting these two parameters, the model still fits the human data well, as in the original experiment. 
+
+For all 8 models, the human data of the steering condition does not overlap with one of the natural breakpoint strategies. As a result, all models indicate that humans do not seem to interleave solely at the natural breakpoint. However, this conclusion can only be drawn under the assumption that the model is valid. This at least requires that some other strategy or strategies should fall within the range of human data, which is not true for all models. 
+
+
+
