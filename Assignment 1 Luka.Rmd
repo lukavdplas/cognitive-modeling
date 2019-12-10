@@ -1,7 +1,7 @@
 ---
 title: 'Lab assignment 1: Processing models'
 author: "Luka van der Plas (4119142) & Rianne Lam (6888216)"
-date: "15 november 2019"
+date: "11 november 2019"
 output: pdf_document
 ---
 
