@@ -488,6 +488,8 @@ runAllComplexStrategies <- function(nrSimulations,phoneNumber) {
 
 ```
 
+The plot below shows the simulation results together with the human data
+
 ```{r, echo = FALSE, warning = FALSE, message = FALSE}
 
 # results <- runAllComplexStrategies(nrSimulations = 50)
@@ -561,9 +563,7 @@ In the dial-focus condition, performance seems to fall outside of the performanc
 In the steer-focus condition, performance does seem to fall on the outside of the edge of the performance space. Participants are fast in dialing and show intermediate lane deviation compared to the model simulations. Therefore, their performance seems to be efficient (fast but no ver high lane deviation). 
 
 C.
-The plot shows the strategies used for the model predictionsthat are comparable in their performance to participats in the steer-focus condition. We can see that participants do not solely seem to interleave at the natural breakpoint. For some strategies, they do interleave at the natural breakpoint, but there are also strategies where they already interleave before the natural breakpoint, and a few where they interleave at a later point than de natural breakpoint. Furthermore, in the simulation interleaving only occurs one or two times. 
-Because a great part of the model predictions that fall within human performance do not interleave only at the natural breakpoint, it does not seem plausible that human solely interleaved at the natural breakpoint. 
-
+We selected the simulations for which the data fall within the margin of error of the steering condition for the human trials. This gave 30 strategies. Below, the breakpoints for each of these strategies is displayed.
 
 ```{r, echo = FALSE, message = FALSE, warning = FALSE}
 library(dplyr)
@@ -589,9 +589,102 @@ for (i in 1:nrow(stratsSteer)) {
 
 ```
 
+```{r q5c, echo = FALSE}
+
+within_steer_data <- subset(complex_sims_results, TrialTime >= steer_dial_m - steer_dial_se & TrialTime <= steer_dial_m + steer_dial_se)
+within_steer_data <- subset(within_steer_data, dev >= steer_dev_m - steer_dev_se & dev <= steer_dev_m + steer_dev_se)
+
+within_dial_data <- subset(complex_sims_results, TrialTime >= dial_dial_m - dial_dial_se & TrialTime <= dial_dial_m + dial_dial_se)
+within_dial_data <- subset(within_dial_data, dev >= dial_dev_m - dial_dev_se & dev <= dial_dev_m + dial_dev_se)
+
+#matching_strategies <- c(within_steer_data$strats, within_dial_data$strats)
+
+matching_strategies <- within_steer_data$strats
+matching_strategies <- sort(matching_strategies)
+
+break_df <- data.frame()
+break_matrix <- matrix(nrow = length(matching_strategies), ncol = 10)
+plot_df <- data.frame()
+
+for (i in 1:length(matching_strategies)) {
+  index <- matching_strategies[i]
+  strat <- all_strategies[index,]
+  breaks <- which(strat)
+  
+  number_of_breaks <- length(breaks)
+  first_break <- breaks[1]
+  
+  for (br in breaks) {
+    break_df <- rbind(break_df, c(i, br))
+  }
+  
+  break_matrix[i,] <- strat
+  
+  for (pos in 1:10) {
+    plot_df <- rbind(plot_df, c(i, pos, strat[pos]))
+  }
+  
+}
+
+colnames(break_df) <- c("strategy", "break_position")
+colnames(plot_df) <- c("strategy", "keypress", "interleave")
+
+ggplot(plot_df) +
+  geom_raster(aes(x = keypress, y = strategy, fill = factor(interleave))) +
+  scale_fill_manual(values = c("cadetblue3", "coral3")) +
+  scale_x_continuous(breaks = seq(1, 10, 1), minor_breaks = NULL) +
+  scale_y_continuous(breaks = seq(1,length(matching_strategies),1), minor_breaks = NULL) +
+  theme(axis.text.y = element_blank(), axis.ticks.y = element_blank())
+
+```
+
+A few things to note:
+* The first breakpoint can be anywhere from the first to the tenth digit. However, there are slightly simulations where the first breakpoint was in digits 2-4.
+* All of the strategies have only one or two breakpoints.
+* There does not seem to be a bias towards any particular position for breakpoints (like the 5th digit).
+* Strategies that interleave solely between the 5th and 6th digit are not in this selection.
+
+We can definitely not conclude that humans must favour the "natural breakpoint" between the 5th and 6th digit, since the results for those simulations do not match with human data. However, the data do suggest that humans may take only one or two breaks, where the first break is often after keypress 2, 3, or 4.
+
 ### Question 6
 
-We only changed the value of the gaussDeviateSD parameter to compare the use of different drift versions on the model fit. 
+We only varied the value of the gaussDeviateSD parameter to compare the use of different drift values on the model fit. 
+
+Because all human-like results came from simulations with only one or two breakpoints, we hypothesised that the number of simulations can be reduced by leaving out the strategies with a very large number of breakpoints. If humans make very few breakpoints, there is no reason to run simulations for a lot of potential strategies that do not match human performance.
+
+To test this hypothesis, we separated the data from question 5 on whether there were at most 5 breaks. These results are plotted below.
+
+```{r q6a_1, echo=FALSE}
+
+less_than_five_breakpoints <- function(strat) {
+  return(sum(all_strategies[strat,]) <= 5)
+}
+
+complex_sims <- results
+complex_sims <- cbind(results, sapply(results$strats, FUN = less_than_five_breakpoints))
+colnames(complex_sims) <- c(colnames(complex_sims)[1:5], "at_most_five_breaks")
+
+#plot all strategies
+
+ggplot(data = complex_sims) +
+  geom_point(aes(TrialTime, abs(dev), color=at_most_five_breaks), size = 0.2) +
+  
+  geom_point(aes(x = steer_dial_m, y = steer_dev_m, color = "Steer focus trials")) +
+  geom_errorbar(aes(x = steer_dial_m, ymin = steer_dev_m - steer_dev_se, ymax = steer_dev_m + steer_dev_se, color = "Steer focus trials", width = 0.2)) +
+  geom_errorbarh(aes(xmin = steer_dial_m - steer_dial_se, xmax = steer_dial_m + steer_dial_se, y = steer_dev_m, color = "Steer focus trials", height = 0.02)) +
+  
+  geom_point(aes(x = dial_dial_m, y = dial_dev_m, color =  "Dial focus trials")) +
+  geom_errorbar(aes(x = dial_dial_m, ymin = dial_dev_m - dial_dev_se, ymax = dial_dev_m + dial_dev_se, color =  "Dial focus trials", width = 0.2)) +
+  geom_errorbarh(aes(xmin = dial_dial_m - dial_dial_se, xmax = dial_dial_m + dial_dial_se, y = dial_dev_m, color =  "Dial focus trials", height = 0.02)) + 
+  
+  xlab("Dial time (s)") +
+  ylab("Average Lateral Deviation (m)") +
+  labs(color = "At most five breakpoints") +
+  theme(legend.position = "bottom")
+
+```
+
+As can be seen in the graph, the data from simulations with more than five breakpoints are further away from the human results, and none of them come close to falling within the human range of performance. Based on this, we conclude that it is valid to leave out these strategies. We ran our simulations for different models using all complex strategies where the total number of breakpoints is at most 5.
 
 ```{r}
 
