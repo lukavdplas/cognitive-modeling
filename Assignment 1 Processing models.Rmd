@@ -642,15 +642,58 @@ ggplot(data = results) +
 
 } 
 
-plotSimulations(resultsSimpleDriftOldIKIOldSim10)
-plotSimulations(resultsSimpleDriftOldIKIOldSim50)
-plotSimulations(resultsSimpleDriftOldIKINewSim10)
-plotSimulations(resultsSimpleDriftOldIKINewSim50)
-plotSimulations(resultsSimpleDriftNewIKIOldSim10)
-plotSimulations(resultsSimpleDriftNewIKIOldSim50)
-plotSimulations(resultsSimpleDriftNewIKINewSim10)
-plotSimulations(resultsSimpleDriftNewIKINewSim50)
-
 ```
+
+Old drift parameter; old IKI parameter; 10 simulations
+
+```{r, echo = FALSE, message =FALSE, warning = FALSE}
+plotSimulations(resultsSimpleDriftOldIKIOldSim10)
+```
+
+Old drift parameter; old IKI parameter; 50 simulations
+
+```{r, echo = FALSE, message =FALSE, warning = FALSE}
+plotSimulations(resultsSimpleDriftOldIKIOldSim50)
+```
+
+Old drift parameter; new IKI parameter; 10 simulations
+
+```{r, echo = FALSE, message =FALSE, warning = FALSE}
+plotSimulations(resultsSimpleDriftOldIKINewSim10)
+```
+
+Old drift parameter; new IKI parameter; 50 simulations
+
+```{r, echo = FALSE, message =FALSE, warning = FALSE}
+plotSimulations(resultsSimpleDriftOldIKINewSim50)
+```
+
+New drift parameter; old IKI parameter; 10 simulations
+
+```{r, echo = FALSE, message =FALSE, warning = FALSE}
+plotSimulations(resultsSimpleDriftNewIKIOldSim10)
+```
+
+New drift parameter; old IKI parameter; 50 simulations
+
+```{r, echo = FALSE, message =FALSE, warning = FALSE}
+plotSimulations(resultsSimpleDriftNewIKIOldSim50)
+```
+
+New drift parameter; new IKI parameter; 10 simulations
+
+```{r, echo = FALSE, message =FALSE, warning = FALSE}
+plotSimulations(resultsSimpleDriftNewIKINewSim10)
+```
+
+New drift parameter; new IKI parameter; 50 simulations
+
+```{r, echo = FALSE, message =FALSE, warning = FALSE}
+plotSimulations(resultsSimpleDriftNewIKINewSim50)
+```
+
+
+
+
 
 
