@@ -45,8 +45,13 @@ dial_focus <- summarise(subset(finished_dialling, partOfExperiment == 'dualDialF
 
 Table:
 
-```{r table_q1a}
+```{r table_q1a, echo=FALSE}
 
+table <- data.frame()
+table <- rbind(table, c("Steering focus", round(steer_focus, 2)), c("Dialling focus", round(dial_focus,2)))
+colnames(table) <- c("Condition", "M", "SD", "SE")
+
+print(table)
 
 ```
 
@@ -80,6 +85,14 @@ avg_deviation_over_condition <- function(condition) {
 dual_steer_data <- avg_deviation_over_condition('dualSteerFocus')
 dual_dial_data <- avg_deviation_over_condition('dualDialFocus')
 
+
+table <- data.frame()
+table <- rbind(table, c("Steering focus", round(dual_steer_data, 3)), c("Dialling focus", round(dual_dial_data,3)))
+colnames(table) <- c("Condition", "M", "SD", "SE")
+
+print(table)
+
+
 ```
 
 Table:
@@ -91,72 +104,50 @@ Figure 1: Lane deviation over time.
 
 ```{r q1c, echo=FALSE}
 
+keypresses = unique(no_errors$phoneNrLengthAfterKeyPress)
 
-keypresses = unique(keyPressDataWithLaneDeviation$phoneNrLengthAfterKeyPress)
+plot_df <- data.frame()
 
-avg_deviation_per_digit <- function(data) {
-  #calculate average of deviation for each digit
-  results <- numeric(length(keypresses))
-  for(i in keypresses){
-    key_data <- subset(data, phoneNrLengthAfterKeyPress == i)
-    deviation <- mean(abs(key_data$lanePosition))
-    results[i] <- deviation
-  }
-  results
-}
 
-total_digits <- length(keypresses)
-
-digit_deviations_per_condition <- function(condition) {
-  data <- subset(keyPressDataWithLaneDeviation, partOfExperiment == condition)
-  
-  #framework for deviations: a list with the data for each digit
-  deviations <- list()
-  for (i in keypresses){
-    deviations <- append(deviations, list(c()))
-  }
-  
-  #calculate deviation data per participant ...
-  p_count <- max(data$pp)
-  for (p in 1:p_count) {
-    p_data <- subset(data, pp == p)
+for (condition in c('dualSteerFocus', 'dualDialFocus')) {
+  condition_data <- subset(no_errors, partOfExperiment == condition)
+  for (digit in keypresses) {
+    digit_data <- subset(condition_data, phoneNrLengthAfterKeyPress == digit)
     
-    #... and per trial
-    trials <- unique(p_data$trial)
-    for (t in trials) {
-      #get deviation data per digit
-      t_data <- subset(p_data, trial == t)
-      trial_deviations <- avg_deviation_per_digit(t_data)
+    participants <- unique(digit_data$pp)
+    deviations <- c()
+    
+    for (p in participants) {
+      p_data <- subset(digit_data, pp == p)
       
-      #store in deviations list
-      for (i in 1:total_digits){
-        deviations[[i]] <- append(deviations[[i]], trial_deviations[i])
+      trials <- unique(p_data$trial)
+      
+      for (t in trials) {
+        t_data <- subset(p_data, trial == t)
+        mean_dev <- mean(abs(t_data$lanePosition), na.rm = TRUE)
+        deviations <- c(deviations, mean_dev)
       }
+      
+      
     }
+    
+    mean_dev <- mean(deviations, na.rm = TRUE)
+    sd_dev <- sd(deviations, na.rm = TRUE) / sqrt(length(deviations))
+    
+    plot_df <- rbind(plot_df, list(digit, mean_dev, sd_dev, condition))
   }
-  
-  #compute mean and SD per digit
-  means <- numeric(length=length(keypresses))
-  sds <- numeric(length=length(keypresses))
-  
-  for (i in 1:length(keypresses)) {
-    means[i] <- mean(deviations[[i]], na.rm=TRUE)
-    sds[i] <- sd(deviations[[i]], na.rm=TRUE)
-  }
-  
-  #put everything in a dataframe
-  condition_col <- rep(condition, length(keypresses))
-  df <- data.frame(keypresses, means, sds, condition_col)
-  
-  return(df)
-  
 }
 
-dual_steer_data_per_digit <- digit_deviations_per_condition('dualSteerFocus')
-dual_dial_data_per_digit <- digit_deviations_per_condition('dualDialFocus')
 
-plot_data <- rbind(dual_dial_data_per_digit, dual_steer_data_per_digit)
+colnames(plot_df) <- c("keypresses", "mean", "sd", "condition")
 
+plot_df$condition[is.na(plot_df$condition)] <- "dualDialFocus"
+
+ggplot(plot_df, aes(x = keypresses, y = mean, group =condition)) +
+  geom_point(aes(shape = factor(condition)), size = 3.5) +
+  geom_line() +
+  geom_errorbar(aes(x = keypresses, ymin = mean - sd, ymax = mean + sd, group = condition))
+  
 ```
 
 ### Question 1D
@@ -221,8 +212,10 @@ for (t in trials) {
   deviations <- rnorm(timesteps, mean = 0, sd = 0.13)
   deviations <- cumsum(deviations)
   
-  for (i in 1:length(deviations)) {
-    trial_data <- rbind(trial_data, c(t, timerange[i], deviations[i]))
+  trial_data <- rbind(trial_data, c(t, timerange[1], 0))
+  
+  for (i in 1:(length(deviations ) - 1)) {
+    trial_data <- rbind(trial_data, c(t, timerange[i + 1], deviations[i]))
   }
 }
 
@@ -480,6 +473,8 @@ If time allows, it may be good to run 100 simulations instead of 50, since there
 
 ### Question 5A
 
+To run simulations from this point on, we adjusted the steering time options to (2,4,6,8,10,12).
+
 ```{r q5a}
 
 generate_strategies <- function(n) {
@@ -644,6 +639,8 @@ ggplot(data = complex_sims_results) +
   
   geom_point(data = natural_breakpoint_sims, aes(TrialTime, abs(dev), color="Natural breakpoint simulations")) +
   
+  scale_color_manual(values = c("firebrick3", "cadetblue4", "cadetblue3", "olivedrab4")) +
+  
   xlab("Dial time (s)") +
   ylab("Average Lateral Deviation (m)") +
   labs(color = "Data source") +
@@ -662,11 +659,6 @@ We selected the simulations for which the data fall within the margin of error o
 
 within_steer_data <- subset(complex_sims_results, TrialTime >= steer_dial_m - steer_dial_se & TrialTime <= steer_dial_m + steer_dial_se)
 within_steer_data <- subset(within_steer_data, dev >= steer_dev_m - steer_dev_se & dev <= steer_dev_m + steer_dev_se)
-
-within_dial_data <- subset(complex_sims_results, TrialTime >= dial_dial_m - dial_dial_se & TrialTime <= dial_dial_m + dial_dial_se)
-within_dial_data <- subset(within_dial_data, dev >= dial_dev_m - dial_dev_se & dev <= dial_dev_m + dial_dev_se)
-
-#matching_strategies <- c(within_steer_data$strats, within_dial_data$strats)
 
 matching_strategies <- within_steer_data$strats
 matching_strategies <- sort(matching_strategies)
@@ -746,6 +738,8 @@ ggplot(data = complex_sims) +
   geom_errorbar(aes(x = dial_dial_m, ymin = dial_dev_m - dial_dev_se, ymax = dial_dev_m + dial_dev_se, color =  "Dial focus trials", width = 0.2)) +
   geom_errorbarh(aes(xmin = dial_dial_m - dial_dial_se, xmax = dial_dial_m + dial_dial_se, y = dial_dev_m, color =  "Dial focus trials", height = 0.02)) + 
   
+  scale_color_manual(values = c("firebrick3", "cadetblue4", "olivedrab4", "cadetblue3")) +
+  
   xlab("Dial time (s)") +
   ylab("Average Lateral Deviation (m)") +
   labs(color = "At most five breakpoints") +
@@ -758,8 +752,10 @@ As can be seen in Figure 11, the data from simulations with more than five break
 ```{r q6aplot, echo = FALSE}
 
 plot_sim_results <- function(dataframe) {
+  
   dataframe$TrialTime <- dataframe$TrialTime / 1000
-
+  natural_breakpoint_sims <- subset(dataframe, strats == target_strat_n)
+  
   ggplot(data = dataframe) +
   geom_point(aes(TrialTime, abs(dev), color="Simulations"), size = 0.2) +
   
@@ -771,24 +767,84 @@ plot_sim_results <- function(dataframe) {
   geom_errorbar(aes(x = dial_dial_m, ymin = dial_dev_m - dial_dev_se, ymax = dial_dev_m + dial_dev_se, color =  "Dial focus trials", width = 0.2)) +
   geom_errorbarh(aes(xmin = dial_dial_m - dial_dial_se, xmax = dial_dial_m + dial_dial_se, y = dial_dev_m, color =  "Dial focus trials", height = 0.02)) + 
   
+  geom_point(data = natural_breakpoint_sims, aes(TrialTime, abs(dev), color="Natural breakpoint simulations")) +
+    
+  scale_color_manual(values = c("firebrick3", "cadetblue4", "cadetblue3", "olivedrab4")) +
+  
   xlab("Dial time (s)") +
   ylab("Average Lateral Deviation (m)") +
   labs(color = "Data source") +
   theme(legend.position = "bottom")
 }
 
+```
+
+Old drift parameter; old IKI parameter; 10 simulations
+
+```{r plot6_1}
+
+load("resultsSimpleDriftOldIKIOldSim10.R")
+plot_sim_results(resultsSimpleDriftOldIKIOldSim10)
+```
+
+Old drift parameter; new IKI parameter; 10 simulations
+
+```{r plot6_3}
+
+load("resultsSimpleDriftOldIKINewSim10.R")
+plot_sim_results(resultsSimpleDriftOldIKINewSim10)
+
+```
+
+New drift parameter; old IKI parameter; 10 simulations
+
+```{r plot6_5}
 
 load("resultsSimpleDriftNewIKIOldSim10.RData")
 plot_sim_results(resultsSimpleDriftNewIKIOldSim10)
+```
 
 
-load("resultsSimpleDriftNewIKIOldSim50.RData")
-plot_sim_results(resultsSimpleDriftNewIKIOldSim50)
 
+New drift parameter; new IKI parameter; 10 simulations
+
+```{r plot6_7}
 
 load("resultsSimpleDriftNewIKINewSim10.RData")
 plot_sim_results(resultsSimpleDriftNewIKINewSim10)
 
+```
+
+
+Old drift parameter; old IKI parameter; 50 simulations
+
+```{r plot6_2}
+
+load("resultsSimpleDriftOldIKIOldSim50.R")
+plot_sim_results(resultsSimpleDriftOldIKIOldSim50)
+
+```
+
+Old drift parameter; new IKI parameter; 50 simulations
+
+```{r plot6_4}
+
+load("resultsSimpleDriftOldIKINewSim50.R")
+plot_sim_results(resultsSimpleDriftOldIKINewSim50)
+```
+
+New drift parameter; old IKI parameter; 50 simulations
+
+```{r plot6_6}
+
+load("resultsSimpleDriftNewIKIOldSim50.RData")
+plot_sim_results(resultsSimpleDriftNewIKIOldSim50)
+
+```
+
+New drift parameter; new IKI parameter; 50 simulations
+
+```{r plot6_8}
 
 load("resultsSimpleDriftNewIKINewSim50.RData")
 plot_sim_results(resultsSimpleDriftNewIKINewSim50)
