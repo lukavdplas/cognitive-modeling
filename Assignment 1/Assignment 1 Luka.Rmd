@@ -2,7 +2,9 @@
 title: 'Lab assignment 1: Processing models'
 author: "Luka van der Plas (4119142) & Rianne Lam (6888216)"
 date: "11 november 2019"
-output: pdf_document
+output:
+  word_document: default
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -14,6 +16,8 @@ knitr::opts_chunk$set(echo = TRUE)
 ### Question 1A
 
 ```{r q1A, echo=FALSE}
+library(ggplot2)
+
 load("keyPressDataWithLaneDeviation.Rdata")
 
 no_errors <- subset(keyPressDataWithLaneDeviation, typingErrorMadeOnTrial == 0)
@@ -238,7 +242,7 @@ ggplot(trial_data, aes(time, deviation)) +
 
 Figure 4: The distribution of car positions as measured in the human trial. 
 
-```{r q2c, echo=FALSE}
+```{r q2c1, echo=FALSE}
 
 min_pos <- min(min(driftdata$posX), min(trial_data$deviation))
 min_pos <- floor(min_pos * 10) / 10
@@ -255,7 +259,7 @@ ggplot(driftdata, aes(posX)) +
 
 Figure 5: The distribution of car positions based on the simulated data. 
 
-```{r q2c, echo=FALSE}
+```{r q2c2, echo=FALSE}
 
 ggplot(trial_data, aes(deviation)) +
   geom_histogram(binwidth = 0.2) +
@@ -649,7 +653,7 @@ ggplot(data = complex_sims_results) +
   xlab("Dial time (s)") +
   ylab("Average Lateral Deviation (m)") +
   labs(color = "Data source") +
-  theme(legend.position = "bottom")
+  theme(legend.position = c(0.8, 0.8))
 ```
 
 ### Question 5B
@@ -751,7 +755,7 @@ ggplot(data = complex_sims) +
   xlab("Dial time (s)") +
   ylab("Average Lateral Deviation (m)") +
   labs(color = "At most five breakpoints") +
-  theme(legend.position = "bottom")
+  theme(legend.position = c(0.8, 0.8))
 
 ```
 
@@ -782,7 +786,7 @@ plot_sim_results <- function(dataframe) {
   xlab("Dial time (s)") +
   ylab("Average Lateral Deviation (m)") +
   labs(color = "Data source") +
-  theme(legend.position = "bottom")
+  theme(legend.position = c(0.8, 0.8))
 }
 
 ```
