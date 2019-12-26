@@ -3,7 +3,7 @@ library(reshape2)
 
 #import fMRI data
 
-neural_responses <- read.table("./data/NeuralResponses")
+fMRIs <- read.table("./data/NeuralResponses")
 
 #simulate subjects
 
@@ -18,7 +18,7 @@ simulate_subject <- function(neural_data) {
 subject_sims <- list()
 
 for (i in 1:12) {
-  subject_sims[[i]] <- simulate_subject(neural_responses)
+  subject_sims[[i]] <- simulate_subject(fMRIs)
 }
 
 #make RDMs
@@ -29,13 +29,13 @@ make_rdm <- function(data) {
   cor_matrix
 }
 
-og_cor <- make_rdm(neural_responses)
+og_cor <- make_rdm(fMRIs)
 subject_cors <- list()
 for (i in 1:12) {
   subject_cors[[i]] <- make_rdm(subject_sims[[i]])
 }
 
-mean_rdm <- Reduce('+', subject_cors) / lenth(subject_cors)
+mean_rdm <- Reduce('+', subject_cors) / length(subject_cors)
 
 #plot RDMs
 
@@ -89,12 +89,17 @@ compare_category <- function(cat_index, correlations, filter = 0) {
   for (i in 1:nrow(cat_rdm)) {
     for (j in 1:ncol(cat_rdm)) {
       if (i < j) { #remove i == j and make sure that i,j and j,i are not both included
-        include <- TRUE
+        
+        #check if i,j should be included based on filter
         if (filter > 0) {
           if (category_vectors[i,filter] == 0 | category_vectors[j,filter] == 0) {
             include <- FALSE
           }
+          else { include <- TRUE}
         }
+        else { include <- TRUE }
+        
+        #add correlation[i,j] to vector
         if (include) {
           if (cat_rdm[i,j] == 1) {
             same_cat <- c(same_cat, c(correlations[i,j]))
@@ -103,14 +108,23 @@ compare_category <- function(cat_index, correlations, filter = 0) {
             diff_cat <- c(diff_cat, c(correlations[i,j]))
           }
         }
-        
       }
     }
   }
   
+  #print descriptives
+  print('Same category:')
+  print(c(mean(same_cat), sd(same_cat)))
+  
+  print('Different category:')
+  print(c(mean(diff_cat), sd(diff_cat)))
+  
   #perform t-test
   t.test(same_cat, diff_cat, alternative = "two.sided", paired = FALSE)
+  
 }
+
+#perform t-tests
 
 compare_category(1, og_cor) #original data, animacy
 compare_category(1, subject_cors[[1]]) #subject data, animacy
@@ -118,5 +132,154 @@ compare_category(1, mean_rdm) #mean of subject data, animacy
 compare_category(6, og_cor) #original data, faces
 compare_category(6, og_cor, filter = 1) #original data, faces, filter on animacy
 
-compare_category(3, og_cor) #original data, faces
-compare_category(3, og_cor, filter = 1) #original data, faces, filter on animacy
+compare_category(3, og_cor) #original data, human/nonhuman
+compare_category(3, og_cor, filter = 1) #original data, human/nonhuman, filter on animacy
+
+# perform 2-way anova to compare 2 categories
+
+perform_anova <- function(cat1, cat2, correlations) {
+  cat1_rdm <- category_rdm_for_index(cat1)
+  cat2_rdm <- category_rdm_for_index(cat2)
+  
+  results <- data.frame()
+  
+  for (i in 1:nrow(correlations)) {
+    for (j in 1:ncol(correlations)) {
+      if (i < j) { #remove i == j and make sure that i,j and j,i are not both included
+        
+        #add correlation to dataframe
+        results <- rbind(results, c(cat1_rdm[i,j], cat2_rdm[i,j], correlations[i,j])                         )
+      }
+    }
+  }
+
+  colnames(results) <- c("same_cat1", "same_cat2", "correlation")
+
+  anova <- aov(correlation ~ same_cat1 + same_cat2 + same_cat1:same_cat2, data = results)
+  summary(anova)
+}
+
+perform_anova(1,6, og_cor)
+
+#load individual neural data
+neurons <- read.table('./data/NeuroRDM')
+neurons_rdm <- unname(neurons)
+neurons_rdm <- as.matrix(neurons_rdm)
+
+
+plot_neurons <- function() {
+  melted_data <- melt(neurons_rdm)
+  
+  plot <- ggplot(data = melted_data, aes(Var2, Var1, fill = value)) +
+    geom_tile() +
+    scale_fill_gradient(low = "darkslategray", high = "darkseagreen1", name = "Dissimilarity", limit = c(0, 10)) +
+    xlab("image") +
+    ylab("image") +
+    theme_minimal()
+  
+  plot
+}
+
+#compare two RDMS
+
+compare_rdms <- function(rdm1, rdm2, filter = 0) {
+  #give the pairwise values
+  rdm1_values <- c()
+  rdm2_values <- c()
+  
+  for (i in 1:nrow(rdm1)) {
+    for (j in 1:ncol(rdm1)) {
+      if (i < j) {
+        #check if i,j should be included based on filter
+        if (filter > 0) {
+          if (category_vectors[i,filter] == 0 | category_vectors[j,filter] == 0) {
+            include <- FALSE
+          }
+          else { include <- TRUE}
+        }
+        else { include <- TRUE }
+        
+        #add to vectors
+        if (include) {
+          rdm1_values <- c(rdm1_values, c(rdm1[i,j]))
+          rdm2_values <- c(rdm2_values, c(rdm2[i,j]))          
+        }
+      }
+    }
+  }
+
+  list(rdm1_values, rdm2_values)
+}
+
+correlate_rdms <- function(rdm1, rdm2, filter = 0) {
+  values <- compare_rdms(rdm1, rdm2, filter)
+  cor.test(values[[1]], values[[2]])
+}
+
+plot_human_macaque_scatter <- function() {
+  values <- compare_rdms(mean_rdm, neurons_rdm)
+  human_macaque_df <- data.frame(Human = values[[1]], Macaque = values[[2]])
+  
+  ggplot(data = human_macaque_df) +
+    geom_point(aes(x = Human, y = Macaque), color = "darkseagreen4", size=0.5) +
+    theme_classic()
+}
+
+
+correlate_rdms(mean_rdm, neurons_rdm)
+correlate_rdms(mean_rdm, neurons_rdm, filter = 1)
+correlate_rdms(mean_rdm, neurons_rdm, filter = 2)
+
+behaviour <- read.table('./data/BehaviourRDM')
+behaviour_rdm <- unname(behaviour)
+behaviour_rdm <- as.matrix(behaviour_rdm)
+
+plot_behaviour_rdm <- function () {
+  melted_data <- melt(behaviour_rdm)
+  
+  plot <- ggplot(data = melted_data, aes(Var2, Var1, fill = value)) +
+    geom_tile() +
+    scale_fill_gradient(low = "darkslategray", high = "darkseagreen1", name = "Dissimilarity", limit = c(0, 0.4)) +
+    xlab("image") +
+    ylab("image") +
+    theme_minimal()
+  
+  plot
+}
+
+#plot_behaviour_rdm()
+
+correlate_rdms(mean_rdm, behaviour_rdm)
+correlate_rdms(mean_rdm, behaviour_rdm, filter = 1)
+correlate_rdms(mean_rdm, behaviour_rdm, filter = 2)
+
+
+plot_neural_behaviour_scatter <- function() {
+  values <- compare_rdms(mean_rdm, behaviour_rdm)
+
+  df <- data.frame(Neural = values[[1]], Behaviour = values[[2]])
+  
+  ggplot(data = df) +
+    geom_point(aes(x = Neural, y = Behaviour), size=0.5) +
+    theme_classic()
+}
+
+plot_neural_behaviour_animacy_scatter <- function() {
+  animate_values <- compare_rdms(mean_rdm, behaviour_rdm, filter = 1)
+  animate_values <- list(animate_values[[1]], animate_values[[2]], rep(c(TRUE), times = length(animate_values[[1]])))
+  
+  inanimate_values <- compare_rdms(mean_rdm, behaviour_rdm, filter = 2)
+  inanimate_values <- list(inanimate_values[[1]], inanimate_values[[2]], rep(c(FALSE), times = length(inanimate_values[[1]])))
+  
+  animate_df <- data.frame(Neural = animate_values[[1]], Behaviour = animate_values[[2]], Animacy =animate_values[[3]])
+  inanimate_df <- data.frame(Neural = inanimate_values[[1]], Behaviour = inanimate_values[[2]], Animacy =inanimate_values[[3]])
+  df <- rbind(animate_df, inanimate_df)
+  
+  ggplot(data = df) +
+    geom_point(aes(x = Neural, y = Behaviour, color = Animacy), size=0.5) +
+    theme_classic()
+}
+
+#plot_neural_behaviour_scatter()
+
+#plot_neural_behaviour_animacy_scatter()
