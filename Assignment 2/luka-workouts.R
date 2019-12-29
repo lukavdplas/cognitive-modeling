@@ -126,14 +126,14 @@ compare_category <- function(cat_index, correlations, filter = 0) {
 
 #perform t-tests
 
-compare_category(1, og_cor) #original data, animacy
-compare_category(1, subject_cors[[1]]) #subject data, animacy
-compare_category(1, mean_rdm) #mean of subject data, animacy
-compare_category(6, og_cor) #original data, faces
-compare_category(6, og_cor, filter = 1) #original data, faces, filter on animacy
+#compare_category(1, og_cor) #original data, animacy
+#compare_category(1, subject_cors[[1]]) #subject data, animacy
+#compare_category(1, mean_rdm) #mean of subject data, animacy
+#compare_category(6, og_cor) #original data, faces
+#compare_category(6, og_cor, filter = 1) #original data, faces, filter on animacy
 
-compare_category(3, og_cor) #original data, human/nonhuman
-compare_category(3, og_cor, filter = 1) #original data, human/nonhuman, filter on animacy
+#compare_category(3, og_cor) #original data, human/nonhuman
+#compare_category(3, og_cor, filter = 1) #original data, human/nonhuman, filter on animacy
 
 # perform 2-way anova to compare 2 categories
 
@@ -159,16 +159,16 @@ perform_anova <- function(cat1, cat2, correlations) {
   summary(anova)
 }
 
-perform_anova(1,6, og_cor)
+#perform_anova(1,6, og_cor)
 
 #load individual neural data
-neurons <- read.table('./data/NeuroRDM')
-neurons_rdm <- unname(neurons)
-neurons_rdm <- as.matrix(neurons_rdm)
+macaque <- read.table('./data/NeuroRDM')
+macaque_rdm <- unname(macaque)
+macaque_rdm <- as.matrix(macaque_rdm)
 
 
-plot_neurons <- function() {
-  melted_data <- melt(neurons_rdm)
+plot_macaque <- function() {
+  melted_data <- melt(macaque_rdm)
   
   plot <- ggplot(data = melted_data, aes(Var2, Var1, fill = value)) +
     geom_tile() +
@@ -217,7 +217,7 @@ correlate_rdms <- function(rdm1, rdm2, filter = 0) {
 }
 
 plot_human_macaque_scatter <- function() {
-  values <- compare_rdms(mean_rdm, neurons_rdm)
+  values <- compare_rdms(mean_rdm, macaque_rdm)
   human_macaque_df <- data.frame(Human = values[[1]], Macaque = values[[2]])
   
   ggplot(data = human_macaque_df) +
@@ -226,9 +226,9 @@ plot_human_macaque_scatter <- function() {
 }
 
 
-correlate_rdms(mean_rdm, neurons_rdm)
-correlate_rdms(mean_rdm, neurons_rdm, filter = 1)
-correlate_rdms(mean_rdm, neurons_rdm, filter = 2)
+correlate_rdms(mean_rdm, macaque_rdm)
+correlate_rdms(mean_rdm, macaque_rdm, filter = 1)
+correlate_rdms(mean_rdm, macaque_rdm, filter = 2)
 
 behaviour <- read.table('./data/BehaviourRDM')
 behaviour_rdm <- unname(behaviour)
@@ -264,22 +264,4 @@ plot_neural_behaviour_scatter <- function() {
     theme_classic()
 }
 
-plot_neural_behaviour_animacy_scatter <- function() {
-  animate_values <- compare_rdms(mean_rdm, behaviour_rdm, filter = 1)
-  animate_values <- list(animate_values[[1]], animate_values[[2]], rep(c(TRUE), times = length(animate_values[[1]])))
-  
-  inanimate_values <- compare_rdms(mean_rdm, behaviour_rdm, filter = 2)
-  inanimate_values <- list(inanimate_values[[1]], inanimate_values[[2]], rep(c(FALSE), times = length(inanimate_values[[1]])))
-  
-  animate_df <- data.frame(Neural = animate_values[[1]], Behaviour = animate_values[[2]], Animacy =animate_values[[3]])
-  inanimate_df <- data.frame(Neural = inanimate_values[[1]], Behaviour = inanimate_values[[2]], Animacy =inanimate_values[[3]])
-  df <- rbind(animate_df, inanimate_df)
-  
-  ggplot(data = df) +
-    geom_point(aes(x = Neural, y = Behaviour, color = Animacy), size=0.5) +
-    theme_classic()
-}
-
 #plot_neural_behaviour_scatter()
-
-#plot_neural_behaviour_animacy_scatter()
