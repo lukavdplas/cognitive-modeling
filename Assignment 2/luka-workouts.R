@@ -40,11 +40,12 @@ mean_rdm <- Reduce('+', subject_cors) / length(subject_cors)
 #plot RDMs
 
 plot_rdm <- function(rdm_data) {
-  melted_data <- melt(rdm_data)
+  normalised = rdm_data / max(rdm_data)
+  melted_data <- melt(normalised)
   
   plot <- ggplot(data = melted_data, aes(Var2, Var1, fill = value)) +
     geom_tile() +
-    scale_fill_gradient(low = "darkslategray", high = "darkseagreen1", name = "Dissimilarity", limit = c(0, 1.5)) +
+    scale_fill_gradient(low = "darkslategray", high = "darkseagreen1", name = "Dissimilarity", limit = c(0, 1)) +
     xlab("image") +
     ylab("image") +
     theme_minimal()
@@ -265,3 +266,11 @@ plot_neural_behaviour_scatter <- function() {
 }
 
 #plot_neural_behaviour_scatter()
+
+#load HMXAX
+hmax <- read.table('./data/HmaxRDM')
+hmax_rdm <- unname(hmax)
+hmax_rdm <- as.matrix(hmax_rdm)
+
+
+
