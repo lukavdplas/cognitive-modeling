@@ -267,6 +267,55 @@ plot_neural_behaviour_scatter <- function() {
 
 #plot_neural_behaviour_scatter()
 
+compare_rdms_crosscat <- function(rdm1, rdm2, filter) {
+  #compare 2 RDMS on the images with DIFFERENT values for the filter category
+  
+  #give the pairwise values
+  rdm1_values <- c()
+  rdm2_values <- c()
+  
+  for (i in 1:nrow(rdm1)) {
+    for (j in 1:ncol(rdm1)) {
+      if (i < j) {
+        #check if i,j should be included based on filter
+        if (category_vectors[i,filter] != category_vectors[j,filter]) {
+          #add to vectors
+          rdm1_values <- c(rdm1_values, c(rdm1[i,j]))
+          rdm2_values <- c(rdm2_values, c(rdm2[i,j]))  
+        }
+      }
+    }
+  }
+  
+  list(rdm1_values, rdm2_values)
+}
+
+plot_neural_behaviour_animacy <- function() {
+  animate_values <- compare_rdms(mean_rdm, behaviour_rdm, filter = 1)
+  rows <- length(animate_values[[1]])
+  animate_values <- list(animate_values[[1]], animate_values[[2]], rep("both animate", rows))
+  
+  inanimate_values <- compare_rdms(mean_rdm, behaviour_rdm, filter = 2)
+  rows <- length(inanimate_values[[1]])
+  inanimate_values <- list(inanimate_values[[1]], inanimate_values[[2]], rep("both inanimate", rows))
+  
+  diff_values <- compare_rdms_crosscat(mean_rdm, behaviour_rdm, filter = 1)
+  rows <- length(diff_values[[1]])
+  diff_values <- list(diff_values[[1]], diff_values[[2]], rep("different animacy", rows))
+  
+  all_values <- list(c(animate_values[[1]], inanimate_values[[1]], diff_values[[1]]), 
+                     c(animate_values[[2]], inanimate_values[[2]], diff_values[[2]]),
+                     c(animate_values[[3]], inanimate_values[[3]], diff_values[[3]]))
+  
+  df <- data.frame(Neural = all_values[[1]], Behaviour = all_values[[2]], Animacy = all_values[[3]])
+  
+  ggplot(data = df) +
+    geom_point(aes(x = Neural, y = Behaviour, color = Animacy), size=0.5) +
+    theme_classic()
+}
+
+#plot_neural_behaviour_animacy()
+
 #load HMXAX
 hmax <- read.table('./data/HmaxRDM')
 hmax_rdm <- unname(hmax)
