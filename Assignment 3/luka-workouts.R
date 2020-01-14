@@ -45,11 +45,11 @@ g1 <- g1 + xlab("height") + ylab("P") + theme_gray(20)
 
 g1
 
+
 expected.success <- function(threshold, scale.points, densityf, cumulativef) {
   
-  
-  sum(sapply(scale.points[1]:max(1, scale.points[which(scale.points==threshold)-1]), function(x) {densityf(x) * densityf(x)})) + 
-    sum(sapply(scale.points[which(scale.points==threshold)]:scale.points[length(scale.points)], function(x) {densityf(x) * literal.listener(x, threshold, densityf, cumulativef)}))
+  ifelse(threshold>min(scale.points), sum(sapply(scale.points[scale.points<threshold], function(x) {densityf(x) * densityf(x)})), 0) + 
+    sum(sapply(scale.points[scale.points>=threshold], function(x) {densityf(x) * literal.listener(x, threshold, densityf, cumulativef)}))
   
 }
 
@@ -71,20 +71,18 @@ probability.threshold <- function(threshold, scale.points, lambda, coverage.para
   numerator / denominator
 }
 
-#probabilities for different threshold values
-lambda <- 50
-coverage <- 0
-densityf <- function(x) {dnorm(x, mean=180, sd=10)}
-cumulativef <- function(x) {pnorm(x, 180, 10)}
-probability.of.thresholds <- sapply(scale.points, 
-                                    function(d) probability.threshold(d, scale.points, lambda, coverage, densityf, cumulativef))
-
-use.adjective <- function(degree, scale.points, lambda, coverage.parameter, densityf, cumulativef) {
+use.adjective <- function(degree, scale.points, lambda, coverage.parameter, densityf, cumulativef, use_existing_probabilities = FALSE) {
   
-  #scale.points.leq <- scale.points[scale.points <= degree]
-  probability.of.thresholds <- probability.of.thresholds[scale.points <= degree]
+  if (use_existing_probabilities)  {
+    probability <- probability.of.thresholds[scale.points <= degree]
+  }
+  else {
+    scale.points.leq <- scale.points[scale.points <= degree]
+    probability <- sapply(scale.points.leq, 
+                          function(d) probability.threshold(d, scale.points, lambda, coverage, densityf, cumulativef))
+  }
   
-  sigma <- sum(probability.of.thresholds)
+  sigma <- sum(probability)
   
   sigma
 }
@@ -102,23 +100,92 @@ round(sapply(1:10, function(x) {use.adjective(x, 1:10, 50, 0, function(x) {dnorm
 round(sapply(1:10, function(x) {use.adjective(x, 1:10, 50, 0, function(x) {dnorm(x, 5, 1)}, function(x) {pnorm(x, 5, 1)})})[6], 3) == 1
 
 
+#probabilities for different threshold values
+lambda <- 50
+coverage <- 0
+densityf <- function(x) {dnorm(x, mean=180, sd=10)}
+cumulativef <- function(x) {pnorm(x, 180, 10)}
+probability.of.thresholds <- sapply(scale.points, 
+                                    function(d) probability.threshold(d, scale.points, lambda, coverage, densityf, cumulativef))
+
 #sigma for different threshold values
 sigma.of.thresholds <- sapply(scale.points, 
-                              function(d) use.adjective(d, scale.points, lambda, coverage, densityf, cumulativef))
+                              function(d) use.adjective(d, scale.points, lambda, coverage, densityf, cumulativef, use_existing_probabilities = TRUE))
+
 
 plotdata <- data.frame("height" = scale.points, "P" = probability.of.thresholds, "sigma" = sigma.of.thresholds)
 
 #plot probabilites
 g1 <- ggplot(plotdata) + 
-  geom_area(aes(x=height, y=P), fill="green", alpha=.4) +
-  
+  geom_area(aes(x=height, y=P), fill="green", alpha=.4)
+
 
 g2 <- ggplot(plotdata) + 
   geom_area(aes(x=height, y=sigma), fill="steelblue", alpha=.4)
 
 
+
 # Task 2:
 # Explore expectded.success and use.adjective for various prior distribution functions.
+
+#apply to IQ
+
+scale.points <- c(0:150) 
+densityf <- function(x) {dnorm(x, mean=100, sd=15)}
+cumulativef <- function(x) {pnorm(x, 100, 15)}
+probability.of.thresholds <- sapply(scale.points, 
+                                    function(d) probability.threshold(d, scale.points, lambda, coverage, densityf, cumulativef))
+sigma.of.thresholds <- sapply(scale.points, 
+                              function(d) use.adjective(d, scale.points, lambda, coverage, densityf, cumulativef, existing_probabilities = TRUE))
+
+
+expected.success.values <- sapply(scale.points, function(d) expected.success(d,  scale.points, densityf, cumulativef))
+
+
+plotdata <- data.frame("IQ" = scale.points, "P" = probability.of.thresholds, "sigma" = sigma.of.thresholds, "Success" = expected.success.values)
+
+
+#plot probabilites
+g1 <- ggplot(plotdata) + 
+  geom_area(aes(x=IQ, y=P), fill="green", alpha=.4)
+
+
+g2 <- ggplot(plotdata) + 
+  geom_area(aes(x=IQ, y=sigma), fill="steelblue", alpha=.4)
+
+g3 <- ggplot(plotdata) + 
+  geom_area(aes(x=IQ, y=Success), fill="steelblue", alpha=.4)
+
+
+#For waiting times
+
+scale.points <- c(0:30) 
+densityf <- function(x) {dgamma(x, shape = 2, scale = 1)}
+cumulativef <- function(x) {pgamma(x, shape = 2, scale = 1)}
+
+probability.of.thresholds <- sapply(scale.points, 
+                                    function(d) probability.threshold(d, scale.points, lambda, coverage, densityf, cumulativef))
+sigma.of.thresholds <- sapply(scale.points, 
+                              function(d) use.adjective(d, scale.points, lambda, coverage, densityf, cumulativef, TRUE))
+
+
+expected.success.values <- sapply(scale.points, function(d) expected.success(d,  scale.points, densityf, cumulativef))
+
+
+plotdata <- data.frame("Time" = scale.points, "P" = probability.of.thresholds, "sigma" = sigma.of.thresholds, "Success" = expected.success.values)
+
+#plot probabilites
+g1 <- ggplot(plotdata) + 
+  geom_area(aes(x=Time, y=P), fill="green", alpha=.4)
+
+g2 <- ggplot(plotdata) + 
+  geom_area(aes(x=Time, y=sigma), fill="steelblue", alpha=.4)
+
+g3 <- ggplot(plotdata) + 
+  geom_area(aes(x=Time, y=Success), fill="steelblue", alpha=.4)
+
+
+
 # For this, assume that coverage.parameter $c$ is at 0 and lambda is at 50.
 
 data.adjective <- read.csv(file="adjective-data.csv", header=TRUE)

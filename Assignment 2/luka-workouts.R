@@ -167,20 +167,6 @@ macaque <- read.table('./data/NeuroRDM')
 macaque_rdm <- unname(macaque)
 macaque_rdm <- as.matrix(macaque_rdm)
 
-
-plot_macaque <- function() {
-  melted_data <- melt(macaque_rdm)
-  
-  plot <- ggplot(data = melted_data, aes(Var2, Var1, fill = value)) +
-    geom_tile() +
-    scale_fill_gradient(low = "darkslategray", high = "darkseagreen1", name = "Dissimilarity", limit = c(0, 10)) +
-    xlab("image") +
-    ylab("image") +
-    theme_minimal()
-  
-  plot
-}
-
 #compare two RDMS
 
 compare_rdms <- function(rdm1, rdm2, filter = 0) {
