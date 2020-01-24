@@ -71,16 +71,20 @@ probability.threshold <- function(threshold, scale.points, lambda, coverage.para
   numerator / denominator
 }
 
-use.adjective <- function(degree, scale.points, lambda, coverage.parameter, densityf, cumulativef, use_existing_probabilities = FALSE) {
+use.adjective <- function(degree, scale.points, lambda, coverage.parameter, densityf, cumulativef) {
   
-  if (use_existing_probabilities)  {
-    probability <- probability.of.thresholds[scale.points <= degree]
-  }
-  else {
-    scale.points.leq <- scale.points[scale.points <= degree]
-    probability <- sapply(scale.points.leq, 
-                          function(d) probability.threshold(d, scale.points, lambda, coverage, densityf, cumulativef))
-  }
+  scale.points.leq <- scale.points[scale.points <= degree]
+  probability <- sapply(scale.points.leq, 
+                          function(d) probability.threshold(d, scale.points, lambda, coverage.parameter, densityf, cumulativef))
+  
+  sigma <- sum(probability)
+  
+  sigma
+}
+
+use.adjective.fast <- function(degree, scale.points, probability.of.thresholds) {
+  
+  probability <- probability.of.thresholds[scale.points <= degree]
   
   sigma <- sum(probability)
   
@@ -110,7 +114,7 @@ probability.of.thresholds <- sapply(scale.points,
 
 #sigma for different threshold values
 sigma.of.thresholds <- sapply(scale.points, 
-                              function(d) use.adjective(d, scale.points, lambda, coverage, densityf, cumulativef, use_existing_probabilities = TRUE))
+                              function(d) use.adjective.fast(d, scale.points, probability.of.thresholds))
 
 
 plotdata <- data.frame("height" = scale.points, "P" = probability.of.thresholds, "sigma" = sigma.of.thresholds)
@@ -127,6 +131,7 @@ g2 <- ggplot(plotdata) +
 
 # Task 2:
 # Explore expectded.success and use.adjective for various prior distribution functions.
+# For this, assume that coverage.parameter $c$ is at 0 and lambda is at 50.
 
 #apply to IQ
 
@@ -136,7 +141,7 @@ cumulativef <- function(x) {pnorm(x, 100, 15)}
 probability.of.thresholds <- sapply(scale.points, 
                                     function(d) probability.threshold(d, scale.points, lambda, coverage, densityf, cumulativef))
 sigma.of.thresholds <- sapply(scale.points, 
-                              function(d) use.adjective(d, scale.points, lambda, coverage, densityf, cumulativef, existing_probabilities = TRUE))
+                              function(d) use.adjective(d, scale.points, probability.of.thresholds))
 
 
 expected.success.values <- sapply(scale.points, function(d) expected.success(d,  scale.points, densityf, cumulativef))
@@ -166,7 +171,7 @@ cumulativef <- function(x) {pgamma(x, shape = 2, scale = 1)}
 probability.of.thresholds <- sapply(scale.points, 
                                     function(d) probability.threshold(d, scale.points, lambda, coverage, densityf, cumulativef))
 sigma.of.thresholds <- sapply(scale.points, 
-                              function(d) use.adjective(d, scale.points, lambda, coverage, densityf, cumulativef, TRUE))
+                              function(d) use.adjective(d, scale.points, probability.of.thresholds))
 
 
 expected.success.values <- sapply(scale.points, function(d) expected.success(d,  scale.points, densityf, cumulativef))
@@ -185,8 +190,7 @@ g3 <- ggplot(plotdata) +
   geom_area(aes(x=Time, y=Success), fill="steelblue", alpha=.4)
 
 
-
-# For this, assume that coverage.parameter $c$ is at 0 and lambda is at 50.
+# Experimental data
 
 data.adjective <- read.csv(file="adjective-data.csv", header=TRUE)
 
@@ -212,8 +216,76 @@ grid.arrange(p.g,p.l,p.m,ncol=2)
 
 # Task 3:
 # check cor between predicted and observed data
-cor(..., ..., method="pearson")
+scale.points <- c(1:14)
+densityf.gaus <- function(x) {dnorm(x, mean=6, sd=2)}
+cumulativef.gaus <- function(x) {pnorm(x, mean=6, sd=2)}
 
+densityf.left <- function(x) {dgamma(x, shape = 4, scale = 1.5)}
+cumulativef.left <- function(x) {pgamma(x, shape = 4, scale = 1.5)}
+
+densityf.moved <- function(x) {dnorm(x, mean=9, sd=2)}
+cumulativef.moved <- function(x) {pnorm(x, mean=9, sd=2)}
+
+lambda = 40
+coverage.options <- c(0.1, 0, -0.1)
+
+try.parameters <- function(densityf, cumulativef, coverage.parameter) {
+  probability.of.thresholds <- sapply(scale.points, 
+                                      function(d) probability.threshold(d, scale.points, lambda, coverage.parameter, densityf, cumulativef))
+  sigma.of.thresholds <- sapply(scale.points, 
+                                function(d) use.adjective.fast(d, scale.points, probability.of.thresholds))
+  
+  sigma.of.thresholds
+}
+
+df <- data.frame(stimulus = c(0), P = c(0), distribution = c(""), coverage = c(0), stringsAsFactors = FALSE)
+for (c in coverage.options) {
+  gaus.sigmas <- try.parameters(densityf.gaus, cumulativef.gaus, c)
+  left.sigmas <- try.parameters(densityf.left, cumulativef.left, c)
+  moved.sigmas <- try.parameters(densityf.moved, cumulativef.moved, c)
+  
+  for (point in scale.points) {
+    df <- rbind(df, c(point, gaus.sigmas[point], "gaussian", c))
+    df <- rbind(df, c(point, left.sigmas[point], "left", c))
+    df <- rbind(df, c(point, moved.sigmas[point], "moved", c))
+  }
+}
+
+df$distribution <- as.factor(df$distribution)
+
+get.correlation <- function(dist1, dist2, coverage.parameter, model.results, experiment.results) {
+  model.selection <- model.results[model.results$distribution == dist1,]
+  model.selection <- model.selection[model.selection$coverage == coverage.parameter,]
+  model.vec <- as.numeric(model.selection$P)
+  
+  experiment.selection <- experiment.results[experiment.results$Adjective == "big",]
+  experiment.selection <- experiment.selection[experiment.selection$Distribution == dist2,]
+  
+
+  cor(model.vec, experiment.selection$percentage, method = "pearson")
+}
+
+distributions <- c("gaussian", "gaussian", "left", "moved")
+
+for (dist in distributions) {
+  for (coverage in coverage.options) {
+    correlation <- get.correlation(dist, dist, coverage, df, data.adjective )
+    print(c(dist, coverage, correlation))
+  }
+}
+
+# effect of flipping prior distribution
+
+best.coverage <- 0.1
+dist.options <- c("gaussian", "left")
+
+for (dist.a in dist.options) {
+  for (dist.b in dist.options) {
+    correlation <- get.correlation(dist.a, dist.b, best.coverage, df, data.adjective )
+    print(c(dist.a, dist.b, correlation))    
+  }
+}
+  
 #install.packages("BayesianTools")
 library(BayesianTools)
 
@@ -243,6 +315,20 @@ summary(out)
 
 # Task 4
 
+model.prediction <- function(coverage.parameter, lambda) {
+  scale.points <- c(1:14)
+  densityf <- function(x) {dnorm(x, mean=6, sd=2)}
+  cumulativef <- function(x) {pnorm(x, mean=6, sd=2)}
+  
+  probability.of.thresholds <- sapply(scale.points, 
+                                      function(d) probability.threshold(d, scale.points, lambda, coverage.parameter, densityf, cumulativef))
+  sigma.of.thresholds <- sapply(scale.points, 
+                                function(d) use.adjective.fast(d, scale.points, probability.of.thresholds))
+  
+  sigma.of.thresholds
+  
+}
+
 prior <- createUniformPrior(lower=c(-1,1), upper=c(1,50), best=NULL)
 
 likelihood <- function(param1) {
@@ -250,24 +336,83 @@ likelihood <- function(param1) {
   collect <- 0
   
   for (i in 1:14) {
-    collect  <- collect + dnorm(data.gaus.big$percentage[i], mean=..., sd=0.1, log=TRUE)
+    collect  <- collect + dnorm(data.gaus.big$percentage[i], mean=model.prediction(param1[1], param1[2])[i], sd=0.1, log=TRUE)
     
   }
   
   return(collect)
 } 
 
-#bayesianSetup <- createBayesianSetup(likelihood = likelihood, prior = prior)
+bayesianSetup <- createBayesianSetup(likelihood = likelihood, prior = prior)
 
-#iter = 10000
+iter = 10000
 
-#settings = list(iterations = iter, message = FALSE)
+settings = list(iterations = iter, message = FALSE)
 
-#out <- runMCMC(bayesianSetup = bayesianSetup, settings = settings)
+out <- runMCMC(bayesianSetup = bayesianSetup, settings = settings)
+
 
 # Task 5
 
-\bibliographystyle{linquiry2}
-\bibliography{mybib}
+define.likelihood <- function(adjective, distribution) {
+  #retrieve relevant experiment data
+  experiment.data <- data.adjective[data.adjective$Adjective == adjective]
+  experiment.data <- experiment.data[experiment.data$Distribution == distribution]
+  
+  #make relevant model predict function
+  model.predict <- function(coverage.parameter, lambda) {
+    scale.points <- c(1:14)
+    
+    #define density and cumulative functions
+    if (distribution == "gaussian") {
+      densityf <- function(x) {dnorm(x, mean=6, sd=2)}
+      cumulativef <- function(x) {pnorm(x, mean=6, sd=2)}      
+    }
+    if (distribution == "left") {
+      densityf <- function(x) {dgamma(x, shape = 4, scale = 1.5)}
+      cumulativef <- function(x) {pgamma(x, shape = 4, scale = 1.5)}     
+    }
+    if (distribution == "moved") {
+      densityf <- function(x) {dnorm(x, mean=9, sd=2)}
+      cumulativef <- function(x) {pnorm(x, mean=9, sd=2)}
+    }
+    
+    #compute model predictions
+    probability.of.thresholds <- sapply(scale.points, 
+                                        function(d) probability.threshold(d, scale.points, lambda, coverage.parameter, densityf, cumulativef))
+    sigma.of.thresholds <- sapply(scale.points, 
+                                  function(d) use.adjective.fast(d, scale.points, probability.of.thresholds))
+    
+    sigma.of.thresholds
+  }
+  
+  #define likelihood
+  collect <- 0
+  
+  for (i in 1:14) {
+    collect  <- collect + dnorm(experiment.data$percentage[i], mean=model.predict(param1[1], param1[2])[i], sd=0.1, log=TRUE)
+    
+  }
+  
+  return(collect)
+}
 
-\end{document}
+for (adjective in c("big", "pointy", "tall")) {
+  for (distribution in distributions) {
+    bayesianSetup <- createBayesianSetup(likelihood = define.likelihood(adjective, distribution), prior = prior)
+    
+    iter = 10000
+    
+    settings = list(iterations = iter, message = FALSE)
+    
+    out <- runMCMC(bayesianSetup = bayesianSetup, settings = settings)
+    
+    objectname <- paste("output_", adjective, "_", distribution, sep="")
+    filename <- paste("output_", adjective, "_", distribution, ".RData", sep="")
+    
+    save(out, list = c(objectname), file = filename)
+  }
+}
+
+#import simulations
+
